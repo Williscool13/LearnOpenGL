@@ -132,8 +132,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="glad.c" />
-    <ClCompile Include="HelloWindow.cpp" />
+    <ClCompile Include="src\glad\glad.c" />
+    <ClCompile Include="src\HelloWindow.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\helloFragmentShader.frag" />
+    <None Include="shaders\helloVertexShader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
