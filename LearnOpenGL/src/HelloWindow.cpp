@@ -1,71 +1,84 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
 #include <windows.h>
+
+// glad/glfw
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <ext/glext.h>
 #include <wingdi.h>
+// cyCodeBase
+#include <cyCode/cyCore.h>
+#include <cyCode/cyVector.h>
+#include <cyCode/cyMatrix.h>
+#include <cyCode/cyGL.h>
 
+// camera
+#include <camera.h>
 
+// image loader
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
-bool first = true;
-GLuint VAOs[2];
-
-std::string readShaderFile(const char* filePath) 
-{
-	std::string shaderCode;
-	std::ifstream fileStream(filePath, std::ios::in);
-
-	if (fileStream.is_open()) {
-		std::stringstream sstr;
-		sstr << fileStream.rdbuf();
-		shaderCode = sstr.str();
-		fileStream.close();
-	}
-	else {
-		std::cerr << "Could not open file: " << filePath << std::endl;
-	}
-
-	return shaderCode;
-}
-
-void checkShaderCompileStatus(GLuint shader)
-{
-	GLint success;
-	GLchar infoLog[512];
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-	if (!success) {
-		glGetShaderInfoLog(shader, 512, NULL, infoLog);
-		std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-	else {
-		std::cout << "Shader compiled successfully." << std::endl;
-	}
-}
-
-void checkShaderLinkStatus(GLuint shaderProgram)
-{
-	GLint success;
-	GLchar infoLog[512];
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-
-	if (!success) {
-		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-		std::cerr << "ERROR::SHADER::LINK_FAILED\n" << infoLog << std::endl;
-	}
-	else {
-		std::cout << "Shader linked successfully." << std::endl;
-	}
-}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) 
 { 
 	glViewport(0, 0, width, height); 
 }
+
+
+// settings
+const float cameraSpeed = 2.5f;
+const float sensitivity = 2.5f;
+
+// Delta time
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+Camera camera;
+
+// Mouse input
+bool firstMouse = true;
+cy::Vec2<float> lastMousePos = cy::Vec2<float>(400.0f, 300.0f);
+cy::Vec2<float> mouseDelta = cy::Vec2<float>(0.0f, 0.0f);
+// Keyboard input
+bool wInput = false;
+bool aInput = false;
+bool sInput = false;
+bool dInput = false;
+// Camera
+cy::Vec3<float> cameraPos = cy::Vec3<float>(0.0f, 0.0f, 3.0f);
+cy::Vec3<float> cameraFront = cy::Vec3<float>(0.0f, 0.0f, -1.0f);
+cy::Vec3<float> cameraUp = cy::Vec3<float>(0.0f, 1.0f, 0.0f);
+float yaw = -90.0f;
+float pitch = 0.0f;
+float fov = 45.0f;
+
+
+float vertices[] = {
+	// positions          // colors           // texture coords
+	 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+	 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+	-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+	-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+};
+
+unsigned int indices[] = {
+	0, 1, 2,   // first triangle
+	0, 2, 3    // second triangle
+};
+
+
+// Program
+GLuint mvpIndex = 99;
+GLuint textureIndex1 = 100;
+GLuint textureIndex2 = 101;
+GLuint timeIndex = 102;
+GLuint VAO;
+cy::GLSLProgram cyProgram;
+cy::GLTexture2D texture1;
+cy::GLTexture2D texture2;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -82,183 +95,214 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (key == GLFW_KEY_4 && action == GLFW_PRESS) {
-		first = !first;
+		//first = !first;
 	}
 
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
+
+	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+		wInput = true;
+	}
+
+	if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
+		wInput = false;
+	}
+
+	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+		aInput = true;
+	}
+
+	if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
+		aInput = false;
+	}
+
+	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+		sInput = true;
+	}
+
+	if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
+		sInput = false;
+	}
+
+	if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+		dInput = true;
+	}
+
+	if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
+		dInput = false;
+	}
 }
 
-GLuint setupShader(GLenum shaderType, const char* shaderSource) {
-	// compile vertex shader
-	GLuint shader;
-	shader = glCreateShader(shaderType);
-	glShaderSource(shader, 1, &shaderSource, NULL);
-	glCompileShader(shader);
-	// check if vertex shader compiled successfully
-	checkShaderCompileStatus(shader);
-	return shader;
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+
+	//camera.ProcessMouseMovement(xpos, ypos);
+	if (firstMouse) {
+		lastMousePos = cy::Vec2<float>(xpos, ypos);
+		firstMouse = false;
+	}
+	mouseDelta = cy::Vec2<float>(xpos - lastMousePos.x, lastMousePos.y - ypos);
+	lastMousePos = cy::Vec2<float>(xpos, ypos);
+
+	// mouse input
+	float _xoffset = mouseDelta.x * sensitivity * deltaTime;
+	float _yoffset = mouseDelta.y * sensitivity * deltaTime;
+
+	yaw += _xoffset;
+	pitch += _yoffset;
+
+	if (pitch > 89.0f) { pitch = 89.0f; }
+	if (pitch < -89.0f) { pitch = -89.0f; }
+
+	cy::Vec3<float> _front;
+	_front.x = cos(yaw * cy::Pi<float>() / 180) * cos(pitch * cy::Pi<float>() / 180);
+	_front.y = sin(pitch * cy::Pi<float>() / 180);
+	_front.z = sin(yaw * cy::Pi<float>() / 180) * cos(pitch * cy::Pi<float>() / 180);
+	cameraFront = _front.GetNormalized();
+
 }
 
-void setupVertexArrayObjectOne(GLuint program) {
-	float vertices[] = {
-	-0.1,  -0.1f, 0.0f,  // top right
-	-0.1f, -0.9f, 0.0f,  // bottom right
-	-0.9f, -0.9f, 0.0f,  // bottom left
-	-0.9f, -0.1f, 0.0f   // top left 
-	};
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+	fov -= (float)yoffset;
 
-	float colors[] = {
-	 1.0f,  0.0f, 0.0f,  // top right
-	 0.0f,  1.0f, 0.0f,  // bottom right
-	 0.0f,  0.0f, 1.0f,  // bottom left
-	 1.0f,  1.0f, 0.0f   // top left 
-	};
-
-	unsigned int indices[] = {
-		0, 1, 3,   // first triangle
-		1, 2, 3    // second triangle
-	};
-
-	// Bind Vertex Array Object (VAO)
-	glBindVertexArray(VAOs[0]);
+	if (fov <= 1.0f) {
+		fov = 1.0f;
+	}
+	if (fov >= 45.0f) {
+		fov = 45.0f;
+	}
+}
 
 
-	GLuint VBOs[2], EBO;
-	glGenBuffers(2, VBOs);
+void setupProgram() {
+	cy::GLSLShader vertexShader;
+	cy::GLSLShader fragmentShader;
+	vertexShader.CompileFile("shaders\\helloVertexShader.vert", GL_VERTEX_SHADER);
+	fragmentShader.CompileFile("shaders\\helloFragmentShader.frag", GL_FRAGMENT_SHADER);
 
-	/// VBOs must be bound before glVertexAttribPointer is called
-	// Set Up Points Vertex Buffer Object (VBO)
-	glGenBuffers(1, &VBOs[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+	// creates program, compiles shaders, and links to program
+	if (!cyProgram.Build(&vertexShader, &fragmentShader)) {
+		std::cout << "Program failed to build" << std::endl;
+	}
+
+	cyProgram.RegisterUniform(timeIndex, "time");
+	cyProgram.RegisterUniform(textureIndex1, "texture1");
+	cyProgram.RegisterUniform(textureIndex2, "texture2");
+	cyProgram.RegisterUniform(mvpIndex, "mvp");
+
+
+	cyProgram.SetUniform("texture1", 0);
+	cyProgram.SetUniform("texture2", 1);
+
+
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
+	
+	GLuint VBOs[3], EBO;
+	glGenBuffers(3, VBOs);
+	glGenBuffers(1, &EBO);
+
+	// bind vertex position and color
+	cyProgram.SetAttribBuffer("pos", VBOs[0], 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),  0 * sizeof(float));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	cyProgram.SetAttribBuffer("color", VBOs[1], 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 3 * sizeof(float));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	cyProgram.SetAttribBuffer("texCoord", VBOs[2], 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 6 * sizeof(float));
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	GLuint pos = glGetAttribLocation(program, "pos");
-	glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(pos);
-
-	// Set Up Colors Vertex Buffer Object (VBO)
-	glGenBuffers(1, &VBOs[1]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
-
-	GLuint color = glGetAttribLocation(program, "color");
-	glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(color);
-
-
-	// Element (Index) Buffer Object (EBO)
-	glGenBuffers(1, &EBO);
+	// EBO
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-}
-
-void setupVertexArrayObjectTwo(GLuint program) {
-	float verticesTwo[] = {
-		-0.5f, 0.0f, 0.0f,  // bottom left
-		0.5f,  0.0f, 0.0f,  // bottom right
-		0.0f,  0.5f, 0.0f,  // middle top
-		0.0f, -0.5f, 0.0f   // middle bottom
-	};
-
-	float colorsTwo[] = {
-		1.0f,  0.0f, 0.0f,  // top right
-		0.0f,  1.0f, 0.0f,  // bottom right
-		0.0f,  0.0f, 1.0f,  // bottom left
-		1.0f,  1.0f, 0.0f   // top left 
-	};
-	
-	unsigned int indices[] = {  
-		0, 1, 2,   // first triangle
-		0, 1, 3    // second triangle
-	};
-
-	// Bind Vertex Array Object (VAO)
-	glBindVertexArray(VAOs[1]);
-
-	GLuint VBOs[2], EBO;
-
-	/// VBOs must be bound before glVertexAttribPointer is called
-	// Set Up Points Vertex Buffer Object (VBO)
-	glGenBuffers(1, &VBOs[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesTwo), verticesTwo, GL_STATIC_DRAW);
-
-	GLuint pos = glGetAttribLocation(program, "pos");
-	glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(pos);
-
-	// Set Up Colors Vertex Buffer Object (VBO)
-	glGenBuffers(1, &VBOs[1]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(colorsTwo), colorsTwo, GL_STATIC_DRAW);
-
-	GLuint color = glGetAttribLocation(program, "color");
-	glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	glEnableVertexAttribArray(color);
-
-
-	// Element (Index) Buffer Object (EBO)
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-}
-
-
-void setupProgram(GLuint program) {
-	// Vertex Shader
-	GLuint vertexShader = setupShader(GL_VERTEX_SHADER, readShaderFile("shaders\\helloVertexShader.vert").c_str());
-
-	// Fragment Shader
-	GLuint fragmentShader = setupShader(GL_FRAGMENT_SHADER, readShaderFile("shaders\\helloFragmentShader.frag").c_str());
-
-	// Shader Program
-	glAttachShader(program, vertexShader);
-	glAttachShader(program, fragmentShader);
-	glLinkProgram(program);
-	checkShaderLinkStatus(program);
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
-
-	glGenVertexArrays(2, VAOs);
-	setupVertexArrayObjectOne(program);
-	setupVertexArrayObjectTwo(program);
 
 	// Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs)
 	glBindVertexArray(0);
+
 }
 
-void renderScene(GLuint program) {
-	GLuint timeUniform = glGetUniformLocation(program, "time");
-	
-	// draw in wireframe mode
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+void setupTextures() {
+	texture1.Initialize();
+	texture1.SetFilteringMode(GL_NEAREST, GL_NEAREST_MIPMAP_LINEAR);
+	texture1.SetWrappingMode(GL_REPEAT, GL_REPEAT);
 
-	// Choose program and vertex array object
-	glUseProgram(program); 
-	if (first) {
-		glBindVertexArray(VAOs[0]);
+	texture2.Initialize();
+	texture2.SetFilteringMode(GL_NEAREST, GL_NEAREST_MIPMAP_LINEAR);
+	texture2.SetWrappingMode(GL_REPEAT, GL_REPEAT);
+
+	stbi_set_flip_vertically_on_load(true);
+}
+
+cy::Matrix4f setupMVP() {
+	cy::Matrix4<float> model = cy::Matrix4f();
+	model.SetIdentity();
+	//model.SetRotation(cy::Vec3<float>(0, 1, 0), glfwGetTime() * 0.5f);
+	//model.SetRotation(cy::Vec3<float>(1.0f, 0.0f, 0.0f), glm::radians(-55.0f));
+	model.AddTranslation(cy::Vec3<float>(2.0f, 0.0f, 0.0f));
+
+	cy::Matrix4<float> view = cy::Matrix4f();
+	//cy::Vec3<float> cameraPos = cy::Vec3<float>(0.0f, 0.0f, 3.0f);
+	view.SetView(cameraPos, cameraPos + cameraFront, cameraUp);
+
+	cy::Matrix4<float> project = cy::Matrix4f();
+	project.SetPerspective(fov / 180.0f * cy::Pi<float>(), 800.0f / 600.0f, 0.1f, 100.0f);
+
+	return project * view * model;
+}
+
+void parseInputs() {
+	if (wInput) { camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime); }
+	if (aInput) { camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime); }
+	if (sInput) { camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime); }
+	if (dInput) { camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime); }
+}
+
+void parseDeltatime() {
+	float currentFrame = glfwGetTime();
+	deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
+}
+
+void renderScene() {
+	glUseProgram(cyProgram.GetID());
+
+	float timeValue = glfwGetTime();
+	cyProgram.SetUniform(timeIndex, timeValue);
+	cy::Matrix4<float> mvp = setupMVP();
+	cyProgram.SetUniform(mvpIndex, mvp);
+
+
+	int width, height, nrChannels;
+	unsigned char* data = stbi_load("textures/WoodenContainerTexture.jpg", &width, &height, &nrChannels, 0);
+	if (!data) {
+		std::cout << "Failed to load texture" << std::endl;
 	}
-	else {
-		glBindVertexArray(VAOs[1]);
+
+	glActiveTexture(GL_TEXTURE0);
+	texture1.SetImage(data, nrChannels, width, height);
+	texture1.BuildMipmaps();
+
+	unsigned char* data2 = stbi_load("textures/AwesomeFace.png", &width, &height, &nrChannels, 0);
+	if (!data2) {
+		std::cout << "Failed to load texture" << std::endl;
 	}
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+	glActiveTexture(GL_TEXTURE1);
+	texture2.SetImage(data2, nrChannels, width, height);
+	texture2.BuildMipmaps();
+
+	stbi_image_free(data);
+	stbi_image_free(data2);
+	
+	//glBindTexture(GL_TEXTURE_2D, texture);
+
+	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-	glUniform1f(timeUniform, glfwGetTime());
 
 	glUseProgram(0);
     glBindVertexArray(0);
 
-
-	// animate and change background color
-	/*float timeValue = glfwGetTime();
-	float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-	float redValue = (cos(timeValue) / 2.0f) + 0.5f;
-	float blueValue = (sin(timeValue) / 2.0f) + (cos(timeValue) / 2.0f);
-	glClearColor(redValue, greenValue, blueValue, 1.0f);*/
 }
 
 int main()
@@ -270,7 +314,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// create a window object and check if it is created successfully
-	GLFWwindow* window = glfwCreateWindow(1920, 1080, "LearnOpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -289,26 +333,32 @@ int main()
 	}
 
 	// viewport
-	glViewport(0, 0, 1920, 1080);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-	// set background color
+	glViewport(0, 0, 800, 600);
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-
-
-	GLuint shaderProgram;
-	shaderProgram = glCreateProgram();
-	setupProgram(shaderProgram);
-	
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+
+	camera = Camera(cy::Vec3<float>(0,0,0), cy::Vec3<float>(0,1,0));
+
+	glEnable(GL_DEPTH_TEST);
+
+	lastFrame = glfwGetTime();
+
+	setupTextures();
+	setupProgram();
+	
 
 	while (!glfwWindowShouldClose(window))
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
-
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		parseDeltatime();
+		parseInputs();
 
 		// rendering commands here
-		renderScene(shaderProgram);
+		renderScene();
 
 		// poll events and swap the buffers
 		glfwPollEvents();

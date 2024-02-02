@@ -30,4 +30,15 @@
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="textures\BrickWallTexture.jpg">
+      <Filter>Source Files</Filter>
+    </Image>
+    <Image Include="textures\WoodenContainerTexture.jpg">
+      <Filter>Source Files</Filter>
+    </Image>
+    <Image Include="textures\AwesomeFace.png">
+      <Filter>Source Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

@@ -139,6 +139,11 @@
     <None Include="shaders\helloFragmentShader.frag" />
     <None Include="shaders\helloVertexShader.vert" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="textures\AwesomeFace.png" />
+    <Image Include="textures\BrickWallTexture.jpg" />
+    <Image Include="textures\WoodenContainerTexture.jpg" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
