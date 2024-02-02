@@ -11,6 +11,7 @@ out vec2 TexCoord;
 
 void main()
 {
+    //gl_Position = vec4(pos * 0.05f , 1.0);
     gl_Position = mvp * vec4(pos, 1.0);
     vertexColor = color;
     TexCoord = texCoord;

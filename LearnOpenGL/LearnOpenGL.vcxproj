@@ -144,6 +144,9 @@
     <Image Include="textures\BrickWallTexture.jpg" />
     <Image Include="textures\WoodenContainerTexture.jpg" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

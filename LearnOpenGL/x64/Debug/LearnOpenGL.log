@@ -1,35 +1,7 @@
 ﻿  HelloWindow.cpp
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,40): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,40): warning C4244:         with
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,40): warning C4244:         [
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,40): warning C4244:             T=float
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,40): warning C4244:         ]
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,34): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,34): warning C4244:         with
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,34): warning C4244:         [
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,34): warning C4244:             T=float
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(136,34): warning C4244:         ]
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,69): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,69): warning C4244:         with
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,69): warning C4244:         [
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,69): warning C4244:             T=float
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,69): warning C4244:         ]
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,36): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,36): warning C4244:         with
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,36): warning C4244:         [
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,36): warning C4244:             T=float
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,36): warning C4244:         ]
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,39): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,39): warning C4244:         with
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,39): warning C4244:         [
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,39): warning C4244:             T=float
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,39): warning C4244:         ]
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,33): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,33): warning C4244:         with
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,33): warning C4244:         [
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,33): warning C4244:             T=float
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(140,33): warning C4244:         ]
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(257,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(265,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(343,25): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(101,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(227,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(235,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(299,25): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(465,28): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
   LearnOpenGL.vcxproj -> C:\Users\twtw4\source\repos\LearnOpenGL\x64\Debug\LearnOpenGL.exe

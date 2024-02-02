@@ -6,9 +6,7 @@ out vec4 color;
 
 
 uniform float time;
-uniform sampler2D texture1;
-uniform sampler2D texture2;
-
+uniform vec3 colorMod;
 
 vec3 gammaCorrect(vec3 color, float gamma)
 {
@@ -32,5 +30,8 @@ void main()
     //color = vec4(correctedColor, 1.0f);
     //color = texture(texture1, TexCoord) * vec4(correctedColor, 1.0);
     float lerpVal = sin(time) * 0.5 + 0.5;
-    color = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), lerpVal);
+    //color = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), lerpVal);
+
+    //color = vec4(colorMod,1);
+    color = vec4(vec3(1,1,1) * colorMod,1);
 } 
