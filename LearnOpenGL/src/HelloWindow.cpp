@@ -41,15 +41,36 @@ bool shiftInput = false;
 
 
 
-unsigned int indices[] = {
-	0, 1, 2,   // first triangle
-	0, 2, 3    // second triangle
+struct Transformation {
+	cy::Matrix4<float> model;
+	cy::Matrix4<float> view;
+	cy::Matrix4<float> projection;
+	cy::Matrix4<float> mvp;
+	cy::Matrix4<float> mv;
 };
+
+struct Vertex {
+	float x, y, z;
+};
+
+struct Normal {
+	float x, y, z;
+};
+
+struct Indices {
+	unsigned int i1, i2, i3;
+};
+
+struct VertexProperty {
+	Vertex vertex;
+	Normal normal;
+};
+
 
 void buildShaders();
 void registerUniforms();
 void setupBuffers();
-cy::Matrix4f setupMVP();
+Transformation setupMVP();
 
 void parseInputs();
 void parseDeltatime();
@@ -67,40 +88,108 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 
 
-struct Vertex {
-	float x, y, z;
-};
-
 // Program
-GLuint textureIndex1 = 100;
-GLuint textureIndex2 = 101;
-GLuint mvpIndex = 102;
-GLuint timeIndex = 103;
-GLuint colorModIndex = 104;
+GLuint mvpIndex = 0;
+GLuint mvIndex = 1;
+GLuint modelIndex = 2;
+GLuint viewIndex = 3;
+GLuint projectionIndex = 4;
+GLuint mvNormalIndex = 5;
+
+
+GLuint timeIndex = 10;
+GLuint colorModIndex = 11;
+GLuint mainLightDirIndex = 12;
 GLuint VAO;
 cy::GLSLProgram cyProgram;
 cy::GLTexture2D texture1;
 cy::GLTexture2D texture2;
 cy::TriMesh currMesh;
-Vertex* vertices; 
+
+VertexProperty* verticesArray;
+
+// Camera
+/// Camera Style
+bool freeCam = false;
+/// Orbital Cam
+float p = -90.0f;
+float y = 0.0f;
+float d = -20.0f;
+// Perspective/Otho
+bool ortho = false;
+
 
 cy::Vec3<float> colorMod = cy::Vec3<float>(1.0f, 0.0f, 0.0f);
 
+VertexProperty* constructVerticesArray(cy::TriMesh mesh) {
+	Vertex* vertices;
+	Indices* _vertexIndices;
+	Normal* normals;
+	Indices* _normalIndices;
+
+	vertices = new Vertex[currMesh.NV()];
+	for (int i = 0; i < currMesh.NV(); i++) {
+
+		vertices[i] = Vertex{ currMesh.V(i).x, currMesh.V(i).y, currMesh.V(i).z };
+	}
+
+	_vertexIndices = new Indices[currMesh.NF()];
+	for (int i = 0; i < currMesh.NF(); i++) {
+
+		_vertexIndices[i] = Indices{ currMesh.F(i).v[0], currMesh.F(i).v[1], currMesh.F(i).v[2] };
+	}
+
+	normals = new Normal[currMesh.NVN()];
+	for (int i = 0; i < currMesh.NVN(); i++) {
+
+		normals[i] = Normal{ currMesh.VN(i).x, currMesh.VN(i).y, currMesh.VN(i).z };
+	}
+
+	_normalIndices = new Indices[currMesh.NF()];
+	for (int i = 0; i < currMesh.NF(); i++) {
+
+		_normalIndices[i] = Indices{ currMesh.FN(i).v[0], currMesh.FN(i).v[1], currMesh.FN(i).v[2] };
+	}
+
+	VertexProperty* verticesArray = new VertexProperty[mesh.NF() * 3];
+
+	for (int i = 0; i < mesh.NF(); i++) {
+		verticesArray[i * 3].vertex = vertices[_vertexIndices[i].i1];
+		verticesArray[i * 3].normal = normals[_normalIndices[i].i1];
+		verticesArray[i * 3 + 1].vertex = vertices[_vertexIndices[i].i2];
+		verticesArray[i * 3 + 1].normal = normals[_normalIndices[i].i2];
+		verticesArray[i * 3 + 2].vertex = vertices[_vertexIndices[i].i3];
+		verticesArray[i * 3 + 2].normal = normals[_normalIndices[i].i3];
+	}
+
+	return verticesArray;
+
+}
+
+cy::Matrix4<float> generateOrthoProjectionMatrix(float r, float l, float t, float b, float n, float f) {
+	cy::Matrix4<float> project = cy::Matrix4f();
+
+	cy::Vec3<float> c1 = cy::Vec3<float>(2 / (r - l), 0.0f, 0.0f);
+	cy::Vec3<float> c2 = cy::Vec3<float>(0.0f, 2 / (t - b), 0.0f);
+	cy::Vec3<float> c3 = cy::Vec3<float>(0.0f, 0.0f, 2 / (f - n));
+	cy::Vec3<float> c4 = cy::Vec3<float>((r + l) / (l - r), (t + b) / (b - t), (f + n) / (n - f));
+	project = cy::Matrix4f(c1, c2, c3, c4);
+
+	project.SetColumn(2, cy::Vec4<float>(0, 0, 1 / -20.0f, 0));
+
+	return project;
+}
+
 void parseObj(char* objFilePath) {
-	cy::TriMesh mesh;
-	if (mesh.LoadFromFileObj(objFilePath)) {
+	if (currMesh.LoadFromFileObj(objFilePath)) {
 		std::cout << "Model loaded successfully" << std::endl;
 	}
 	else {
 		std::cout << "Model failed to load" << std::endl;
 	}
-	std::cout << "Loaded model with " << mesh.NV() << " Vertices" << std::endl;
 
-	currMesh = mesh;
-	vertices = new Vertex[mesh.NV()];
-	for (int i = 0; i < mesh.NV(); i++) {
-		vertices[i] = Vertex{ mesh.V(i).x, mesh.V(i).y, mesh.V(i).z };
-	}
+
+	verticesArray = constructVerticesArray(currMesh);
 }
 
 void RecompileShaders() {
@@ -108,7 +197,6 @@ void RecompileShaders() {
 	buildShaders();
 	registerUniforms();
 	std::cout << "Color Changed to green to demonstrate recompilation" << std::endl;
-	//cyProgram.SetUniform(colorModIndex, cy::Vec3<float>(0.0f, 1.0f, 0.0f));
 	colorMod = cy::Vec3<float>(0.0f, 1.0f, 0.0f);
 }
 
@@ -124,7 +212,14 @@ void buildShaders() {
 void registerUniforms() {
 	cyProgram.RegisterUniform(timeIndex, "time");
 	cyProgram.RegisterUniform(mvpIndex, "mvp");
+	cyProgram.RegisterUniform(mvIndex, "mv");
+	cyProgram.RegisterUniform(modelIndex, "model");
+	cyProgram.RegisterUniform(viewIndex, "view");
+	cyProgram.RegisterUniform(projectionIndex, "projection");
 	cyProgram.RegisterUniform(colorModIndex, "colorMod");
+	cyProgram.RegisterUniform(mainLightDirIndex, "mainLightDirection");
+
+	cyProgram.RegisterUniform(mvNormalIndex, "mvNormal");
 
 	std::cout << "Uniforms registered" << std::endl;
 }
@@ -134,21 +229,33 @@ void setupBuffers() {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	GLuint VBO;
+	GLuint VBO, EBO;
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
 
-	cyProgram.SetAttribBuffer("pos", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	glBufferData(GL_ARRAY_BUFFER, currMesh.NV() * sizeof(Vertex), vertices, GL_STATIC_DRAW);
+	//cyProgram.SetAttribBuffer("pos", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+	//glBufferData(GL_ARRAY_BUFFER, currMesh.NV() * sizeof(Vertex), vertices, GL_STATIC_DRAW);
+
+	cyProgram.SetAttribBuffer("pos", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0); 
+	glBufferData(GL_ARRAY_BUFFER, currMesh.NF() * 3 * sizeof(VertexProperty), verticesArray, GL_STATIC_DRAW);
+
+	std::cout << "Set up buffer with " << currMesh.NF() * 3 << " vertices" << std::endl;
+
+	cyProgram.SetAttribBuffer("normal", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	glBufferData(GL_ARRAY_BUFFER, currMesh.NF() * 3 * sizeof(VertexProperty), verticesArray, GL_STATIC_DRAW);
+
+
+
+
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, currMesh.NF() * sizeof(Indices), _vertexIndices, GL_STATIC_DRAW);
+
 
 	glBindVertexArray(0);
 }
 
 
-float p = -90.0f;
-float y = 0.0f;
-float d = -10.0f;
-bool ortho = false;
-cy::Matrix4f setupMVP() {
+Transformation setupMVP() {
 	cy::Matrix4<float> model = cy::Matrix4f();
 	model.SetIdentity();
 	if (!currMesh.IsBoundBoxReady()) {
@@ -159,91 +266,71 @@ cy::Matrix4f setupMVP() {
 		cy::Vec3<float> max = currMesh.GetBoundMax();
 		cy::Vec3<float> center = (min + max) * 0.5f;
 		float radius = cy::Max((max - min).x, (max - min).y, (max - min).z);
-		//model.SetScale(1.0f / radius);
 		model.AddTranslation(-center);
 	}
-	//model.SetScale(cy::Vec3<float>(0.5f, 0.5f, 0.5f));
-	//model.SetRotation(cy::Vec3<float>(0, 1, 0), glfwGetTime() * 0.5f);
-	//model.SetRotation(cy::Vec3<float>(1.0f, 0.0f, 0.0f), glm::radians(-55.0f));
-	//model.AddTranslation(cy::Vec3<float>(2.0f, 0.0f, 0.0f));
 
-	//cy::Matrix4<float> view = camera.GetViewMatrix();
-	cy::Matrix4<float> view = cy::Matrix4<float>();
-	view.SetIdentity();
-	view.SetRotationXYZ(y / 180.0f * cy::Pi<float>(), p / 180.0f * cy::Pi<float>(), 0.0f);
-	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, d));
+	cy::Matrix4<float> view;
+	if (freeCam) {
+		view = camera.GetViewMatrix();
+	}
+	else {
+		view = cy::Matrix4<float>();
+		view.SetIdentity();
+		view.SetRotationXYZ(y / 180.0f * cy::Pi<float>(), p / 180.0f * cy::Pi<float>(), 0.0f);
+		view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, d));
+	}
+	
 	
 
 	cy::Matrix4<float> project = cy::Matrix4f();
 	if (ortho) {
 		project.SetIdentity();
 
-		float r = 1.0f;
-		float l = -1.0f;
-		float t = 1.0f;
-		float b = -1.0f;
+		float r = 10.0f;
+		float l = -10.0f;
+		float t = 10.0f;
+		float b = -10.0f;
 		float n = 0.1f;
 		float f = 1000.0f;
 
-
-		cy::Vec3<float> c1 = cy::Vec3<float>(2 / (r - l), 0.0f, 0.0f);
-		cy::Vec3<float> c2 = cy::Vec3<float>(0.0f, 2 / (t - b), 0.0f);
-		cy::Vec3<float> c3 = cy::Vec3<float>(0.0f, 0.0f, 2 / (f - n));
-		cy::Vec3<float> c4 = cy::Vec3<float>((r + l) / (l - r), (t + b) / (b - t), (f + n) / (n - f));
-		project = cy::Matrix4f(c1, c2, c3, c4);
-
-		project.SetColumn(2, cy::Vec4<float>(0, 0, 1 / d, 0));
-		//project.SetColumn(2, cy::Vec4<float>(0, 0, 1 / d, 0));
-		//project.OrthogonalizeZ();
-
-		//project.OrthogonalizeX();
-		//project.OrthogonalizeY();
-		//project = cy::Matrix4f::Scale(1.0f / d) * project;
-		//project.SetScale(cy::Vec3<float>(1.0f / d, 1.0f / d, 1.0f / d));
-
+		project = generateOrthoProjectionMatrix(r, l, t, b, n, f);
 	}
 	else {
 		project.SetPerspective(camera.Zoom / 180.0f * cy::Pi<float>(), 800.0f / 600.0f, 0.1f, 1000.0f);
 	}
 
-	return project * view * model;
+	Transformation t;
+	t.model = model;
+	t.view = view;
+	t.projection = project;
+	t.mvp = project * view * model;
+	t.mv = view * model;
+
+	return t;
 }
 
-void parseInputs() {
-	if (wasdInput[0]) { camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime); }
-	if (wasdInput[1]) { camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime); }
-	if (wasdInput[2]) { camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime); }
-	if (wasdInput[3]) { camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime); }
-	if (spaceCInput[0]) { camera.ProcessKeyboard(Camera_Movement::UP, deltaTime); }
-	if (spaceCInput[1]) { camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime); }
-
-	if (shiftInput) { camera.MovementSpeed = 5.0f; }
-	else { camera.MovementSpeed = 2.5f; }
-
-
-}
-
-void parseDeltatime() {
-	float currentFrame = glfwGetTime();
-	deltaTime = currentFrame - lastFrame;
-	lastFrame = currentFrame;
-}
 
 void renderScene() {
 	glUseProgram(cyProgram.GetID());
 
 	float timeValue = glfwGetTime();
 	cyProgram.SetUniform(timeIndex, timeValue);
-	cy::Matrix4<float> mvp = setupMVP();
-	cyProgram.SetUniform(mvpIndex, mvp);
+	Transformation t = setupMVP();
+	cyProgram.SetUniform(modelIndex, t.model);
+	cyProgram.SetUniform(viewIndex, t.view);
+	cyProgram.SetUniform(projectionIndex, t.projection);
+	cyProgram.SetUniform(mvIndex, t.mv);
+	cyProgram.SetUniform(mvpIndex, t.mvp);
+
+	cyProgram.SetUniform(mvNormalIndex, t.mv.GetSubMatrix3().GetInverse().GetTranspose());
 
 	cyProgram.SetUniform(colorModIndex, colorMod);
 
-	//glBindTexture(GL_TEXTURE_2D, texture);
 
 	glBindVertexArray(VAO);
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	glDrawArrays(GL_TRIANGLES, 0, currMesh.NV());
+	//glDrawElements(GL_TRIANGLES, currMesh.NF() * 3, GL_UNSIGNED_INT, 0);
+	glDrawArrays(GL_TRIANGLES, 0, currMesh.NF() * 3);
 
 
 	glUseProgram(0);
@@ -294,7 +381,7 @@ int main(int argc, char* argv[])
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
-	//glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 
 	lastFrame = glfwGetTime();
 	char* objFilePath = argv[1];
@@ -463,4 +550,25 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	camera.ProcessMouseScroll(yoffset);
+}
+
+
+void parseInputs() {
+	if (wasdInput[0]) { camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime); }
+	if (wasdInput[1]) { camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime); }
+	if (wasdInput[2]) { camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime); }
+	if (wasdInput[3]) { camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime); }
+	if (spaceCInput[0]) { camera.ProcessKeyboard(Camera_Movement::UP, deltaTime); }
+	if (spaceCInput[1]) { camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime); }
+
+	if (shiftInput) { camera.MovementSpeed = 5.0f; }
+	else { camera.MovementSpeed = 2.5f; }
+
+
+}
+
+void parseDeltatime() {
+	float currentFrame = glfwGetTime();
+	deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
 }
