@@ -32,7 +32,7 @@ vec3 gammaCorrect(vec3 color, float gamma)
 
 void main()
 {
-
+    // wasteful but this isn't production code so who cares
     vec3 viewLightDirection = (view * vec4(mainLightDirection, 0)).xyz;
 
     
@@ -48,9 +48,6 @@ void main()
 
 
     float lerpVal = sin(time) * 0.5 + 0.5;
-    //color = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), lerpVal);
-
-    //color = vec4(normalize(mvNormal * vertexNormal), 1);
 
     // diffuse only
     //color = vec4(diffuse, 1);
