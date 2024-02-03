@@ -1,12 +1,26 @@
 #version 330 core
 //in vec3 vertexColor;
 //in vec2 TexCoord;
-in vec3 vertexNormal;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 mvp;
+
+uniform mat3 mvNormal;
+
+in vec3 viewPosition;
+in vec3 viewNormal;
 
 out vec4 color;
 
 uniform float time;
-uniform vec3 colorMod;
+
+uniform vec3 diffuseColor;
+uniform vec3 specularColor;
+uniform float smoothness;
+uniform float ambientIlluminance;
+
 uniform vec3 mainLightDirection;
 
 
@@ -18,23 +32,37 @@ vec3 gammaCorrect(vec3 color, float gamma)
 
 void main()
 {
-    float r = sin(time) * 0.5 + 0.5;
-    float g = cos(time) * 0.5 + 0.5;
-    float b = sin(time) * cos(time) * 0.5 + 0.5;
-    float col = (sin(time) / 1.5) + 0.5;
-    //col = clamp(col, 0.0f, 1.0f);
-    //vec3 albedo = vColor * col;
 
-    //vec3 albedo = vec3(r * vertexColor.r, g * vertexColor.g, b * vertexColor.b);
+    vec3 viewLightDirection = (view * vec4(mainLightDirection, 0)).xyz;
 
-    //vec3 correctedColor = gammaCorrect(albedo, 2.2f);
+    
+    vec3 diffuse = max(dot(normalize(viewNormal), normalize(viewLightDirection)), 0.0) * diffuseColor;
 
-    //color = vec4(correctedColor, 1.0f);
-    //color = texture(texture1, TexCoord) * vec4(correctedColor, 1.0);
+    vec3 reflectVec = normalize(reflect(-viewLightDirection, normalize(viewNormal)));
+    vec3 viewDir = normalize(-viewPosition);
+    float spec = pow(max(dot(reflectVec, viewDir), 0.0), smoothness);
+    vec3 specular = specularColor * spec;
+
+    vec3 ambient = ambientIlluminance * diffuseColor;
+
+
+
     float lerpVal = sin(time) * 0.5 + 0.5;
     //color = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), lerpVal);
 
-    //color = vec4(colorMod,1);
-    //color = vec4(vec3(1,1,1) * colorMod,1);
-    color = vec4(vertexNormal, 1);
+    //color = vec4(normalize(mvNormal * vertexNormal), 1);
+
+    // diffuse only
+    //color = vec4(diffuse, 1);
+
+    // specular only 
+    //color = vec4(specular, 1);
+
+    // ambient only
+    //color = vec4(ambient, 1);
+
+    // diffuse + specular + ambient
+    float mainLightIlluminance = 1.0f;
+    color = vec4((diffuse + specular) * mainLightIlluminance + ambient, 1);
+
 } 

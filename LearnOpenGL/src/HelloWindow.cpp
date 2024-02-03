@@ -95,10 +95,11 @@ GLuint modelIndex = 2;
 GLuint viewIndex = 3;
 GLuint projectionIndex = 4;
 GLuint mvNormalIndex = 5;
-
-
-GLuint timeIndex = 10;
-GLuint colorModIndex = 11;
+GLuint smoothnessIndex = 6;
+GLuint diffuseColorIndex = 7;
+GLuint specularColorIndex = 8;
+GLuint ambientIlluminanceIndex = 9;
+GLuint timeIndex = 11;
 GLuint mainLightDirIndex = 12;
 GLuint VAO;
 cy::GLSLProgram cyProgram;
@@ -114,12 +115,13 @@ bool freeCam = false;
 /// Orbital Cam
 float p = -90.0f;
 float y = 0.0f;
-float d = -20.0f;
+float d = -40.0f;
 // Perspective/Otho
 bool ortho = false;
 
-
-cy::Vec3<float> colorMod = cy::Vec3<float>(1.0f, 0.0f, 0.0f);
+// Main Light
+float azimuth = 0.0f;
+float inclination = 0.0f;
 
 VertexProperty* constructVerticesArray(cy::TriMesh mesh) {
 	Vertex* vertices;
@@ -196,8 +198,6 @@ void RecompileShaders() {
 	std::cout << "-----Recompiling Shaders-----" << std::endl;
 	buildShaders();
 	registerUniforms();
-	std::cout << "Color Changed to green to demonstrate recompilation" << std::endl;
-	colorMod = cy::Vec3<float>(0.0f, 1.0f, 0.0f);
 }
 
 void buildShaders() {
@@ -216,8 +216,14 @@ void registerUniforms() {
 	cyProgram.RegisterUniform(modelIndex, "model");
 	cyProgram.RegisterUniform(viewIndex, "view");
 	cyProgram.RegisterUniform(projectionIndex, "projection");
-	cyProgram.RegisterUniform(colorModIndex, "colorMod");
+
 	cyProgram.RegisterUniform(mainLightDirIndex, "mainLightDirection");
+
+	cyProgram.RegisterUniform(ambientIlluminanceIndex, "ambientIlluminance");
+
+	cyProgram.RegisterUniform(diffuseColorIndex, "diffuseColor");
+	cyProgram.RegisterUniform(specularColorIndex, "specularColor");
+	cyProgram.RegisterUniform(smoothnessIndex, "smoothness");
 
 	cyProgram.RegisterUniform(mvNormalIndex, "mvNormal");
 
@@ -254,20 +260,32 @@ void setupBuffers() {
 	glBindVertexArray(0);
 }
 
+void rotateVertex(cy::Vec3<float>& vertex, cy::Matrix4<float> rotationMatrix) {
+	cy::Vec4<float> v = cy::Vec4<float>(vertex.x, vertex.y, vertex.z, 1.0f);
+	v = rotationMatrix * v;
+	vertex = cy::Vec3<float>(v.x, v.y, v.z);
+}
 
 Transformation setupMVP() {
 	cy::Matrix4<float> model = cy::Matrix4f();
 	model.SetIdentity();
+	
+	model = cy::Matrix4<float>::RotationY(90.0f * cy::Pi<float>() / 180.0f) * model;
+	model = cy::Matrix4<float>::RotationZ(90.0f * cy::Pi<float>() / 180.0f) * model;
+
 	if (!currMesh.IsBoundBoxReady()) {
 		currMesh.ComputeBoundingBox();
 	}
 	else {
 		cy::Vec3<float> min = currMesh.GetBoundMin();
 		cy::Vec3<float> max = currMesh.GetBoundMax();
+		rotateVertex(min, model);
+		rotateVertex(max, model);
 		cy::Vec3<float> center = (min + max) * 0.5f;
 		float radius = cy::Max((max - min).x, (max - min).y, (max - min).z);
 		model.AddTranslation(-center);
 	}
+	
 
 	cy::Matrix4<float> view;
 	if (freeCam) {
@@ -309,6 +327,12 @@ Transformation setupMVP() {
 	return t;
 }
 
+cy::Vec3<float> lightDirection(float az, float inc) {
+	float x = cos(az) * cos(inc);
+	float y = sin(inc);
+	float z = sin(az) * cos(inc);
+	return cy::Vec3<float>(x, y, z);
+}
 
 void renderScene() {
 	glUseProgram(cyProgram.GetID());
@@ -323,8 +347,13 @@ void renderScene() {
 	cyProgram.SetUniform(mvpIndex, t.mvp);
 
 	cyProgram.SetUniform(mvNormalIndex, t.mv.GetSubMatrix3().GetInverse().GetTranspose());
+	cy::Vec3<float> mainLightDir = lightDirection(azimuth, inclination);
+	cyProgram.SetUniform(mainLightDirIndex, mainLightDir.GetNormalized());
+	cyProgram.SetUniform(ambientIlluminanceIndex, 0.2f);
 
-	cyProgram.SetUniform(colorModIndex, colorMod);
+	cyProgram.SetUniform(diffuseColorIndex, cy::Vec3<float>(1.0f, 0.0f, 0.0f));
+	cyProgram.SetUniform(specularColorIndex, cy::Vec3<float>(1.0f, 1.0f, 1.0f));
+	cyProgram.SetUniform(smoothnessIndex, 32.0f);
 
 
 	glBindVertexArray(VAO);
@@ -415,6 +444,7 @@ int main(int argc, char* argv[])
 
 bool lmb = false;
 bool rmb = false;
+bool ctrl = false;
 const float cameraSpeed = 0.1f;
 const float sensitivity = 0.1f;
 
@@ -452,6 +482,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		ortho = !ortho;
 	}
 
+	if (key == GLFW_KEY_O && action == GLFW_PRESS) {
+		freeCam = !freeCam;
+	}
 
 	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
 		wasdInput[0] = true;
@@ -508,6 +541,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) {
 		shiftInput = false;
 	}
+
+	if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) {
+		ctrl = true;
+	}
+
+	if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) {
+		ctrl = false;
+	}
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -523,7 +564,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 	camera.ProcessMouseMovement(xoffset, yoffset);
 
-	if (lmb) {
+	if (lmb && ctrl) {
+		azimuth -= xoffset * sensitivity;
+		inclination += yoffset * sensitivity;
+	}
+	else if (lmb) {
 		p += xoffset * sensitivity;
 		y += yoffset * sensitivity;
 	}
