@@ -235,6 +235,7 @@ void buildShaders() {
 
 
 void registerUniforms() {
+	glUseProgram(cyProgram.GetID());
 	cyProgram.RegisterUniform(timeIndex, "time");
 	cyProgram.RegisterUniform(mvpIndex, "mvp");
 	cyProgram.RegisterUniform(mvIndex, "mv");
@@ -245,67 +246,48 @@ void registerUniforms() {
 
 	cyProgram.RegisterUniform(mainLightDirIndex, "mainLightDirection");
 	cyProgram.RegisterUniform(ambientIlluminanceIndex, "ambientIlluminance");
-	cyProgram.RegisterUniform(smoothnessIndex, "smoothness");
 
 
 
+	// Material Properties
 	cyProgram.RegisterUniform(diffuseTextureIndex, "fragTexture");
 	cyProgram.RegisterUniform(specularTextureIndex, "specularTexture");
 	cyProgram.RegisterUniform(ambientTextureIndex, "ambientTexture");
-
 	cyProgram.RegisterUniform(Ka, "Ka");
 	cyProgram.RegisterUniform(Kd, "Kd");
 	cyProgram.RegisterUniform(Ks, "Ks");
-
+	cyProgram.RegisterUniform(smoothnessIndex, "specularExponent");
 
 
 
 	/// diff
-	// gen tex
 	diffuseTexture = cy::GLTexture2D();
+	diffuseTexture.Bind(0);
 	diffuseTexture.Initialize(); // gen, bind, set filtering and wrapping
-	diffuseTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR); // override default filtering mode
+	diffuseTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR); // override default filtering mode
 	diffuseTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT); // override default wrapping mode
-	//// load image
-	//std::vector<unsigned char> image;
-	//unsigned error;
-	//unsigned width, height;
-	//error = lodepng::decode(image, width, height, "textures\\brick.png");
-	//if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-	//unsigned char* data = image.data();
-	//diffuseTexture.SetImage(data, 4, width, height); // Bind and glTexImage2D
-	//diffuseTexture.BuildMipmaps(); // Build mipmaps
-
 	/// spec 
-	// gen tex
 	specularTexture = cy::GLTexture2D();
+	specularTexture.Bind(1);
 	specularTexture.Initialize();
-	specularTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR);
+	specularTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
 	specularTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT);
-	//// load image
-	//image.clear();
-	//error = lodepng::decode(image, width, height, "textures\\brick-specular.png");
-	//if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-	//data = image.data();
-	//specularTexture.SetImage(data, 4, width, height);
-	//specularTexture.BuildMipmaps();
-
 	// ambient
 	ambientTexture = cy::GLTexture2D();
+	ambientTexture.Bind(2);
 	ambientTexture.Initialize();
-	ambientTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR);
+	ambientTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
 	ambientTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT);
 
 
 	// initial set of any uniform variables (DONT FORGET TO USE PROGRAM)
-	glUseProgram(cyProgram.GetID());
 	cyProgram.SetUniform(diffuseTextureIndex, 0);
 	cyProgram.SetUniform(specularTextureIndex, 1);
 	cyProgram.SetUniform(ambientTextureIndex, 2);
 
-	diffuseTexture.Bind(0);
+	/*diffuseTexture.Bind(0);
 	specularTexture.Bind(1);
-	ambientTexture.Bind(2);
+	ambientTexture.Bind(2);*/
 	glUseProgram(0);
 
 

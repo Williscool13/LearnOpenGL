@@ -8,7 +8,6 @@ uniform mat4 mvp;
 uniform mat3 mvNormal;
 
 // material properties
-uniform float smoothness;
 uniform float ambientIlluminance;
 
 // time
@@ -30,6 +29,7 @@ uniform sampler2D ambientTexture;
 uniform vec4 Ka;
 uniform vec4 Kd;
 uniform vec4 Ks;
+uniform float specularExponent;
 
 vec3 gammaCorrect(vec3 color, float gamma)
 {
@@ -55,7 +55,7 @@ void main()
     vec3 specColor = mix(specTex.rgb, Ks.rgb, Ks.a);
     vec3 reflectVec = normalize(reflect(-viewLightDirection, normalize(viewNormal)));
     vec3 viewDir = normalize(-viewPosition);
-    float specIntensity = pow(max(dot(reflectVec, viewDir), 0.0), smoothness);
+    float specIntensity = pow(max(dot(reflectVec, viewDir), 0.0), specularExponent);
     vec3 specular = specColor * specIntensity;
 
 
