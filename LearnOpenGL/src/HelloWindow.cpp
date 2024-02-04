@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <map>
+#include <functional>
 #include <windows.h>
 
 // glad/glfw
@@ -9,6 +11,8 @@
 
 #include <ext/glext.h>
 #include <wingdi.h>
+
+
 // cyCodeBase
 #include <cyCode/cyCore.h>
 #include <cyCode/cyVector.h>
@@ -22,6 +26,9 @@
 // image loader
 //#define STB_IMAGE_IMPLEMENTATION
 //#include <stb_image.h>
+
+// png decoder
+#include "lodepng.h"
 
 
 
@@ -57,13 +64,14 @@ struct Normal {
 	float x, y, z;
 };
 
-struct Indices {
-	unsigned int i1, i2, i3;
+struct Texture {
+	float u, v;
 };
 
 struct VertexProperty {
 	Vertex vertex;
 	Normal normal;
+	Texture texture;
 };
 
 
@@ -96,11 +104,10 @@ GLuint viewIndex = 3;
 GLuint projectionIndex = 4;
 GLuint mvNormalIndex = 5;
 GLuint smoothnessIndex = 6;
-GLuint diffuseColorIndex = 7;
-GLuint specularColorIndex = 8;
 GLuint ambientIlluminanceIndex = 9;
 GLuint timeIndex = 11;
 GLuint mainLightDirIndex = 12;
+
 GLuint VAO;
 cy::GLSLProgram cyProgram;
 cy::GLTexture2D texture1;
@@ -108,6 +115,14 @@ cy::GLTexture2D texture2;
 cy::TriMesh currMesh;
 
 VertexProperty* verticesArray;
+int numVertices;
+
+// Texture
+GLuint diffuseTextureIndex = 100;
+GLuint specularTextureIndex = 101;
+cy::GLTexture2D diffuseTexture;
+cy::GLTexture2D specularTexture;
+
 
 // Camera
 /// Camera Style
@@ -123,46 +138,49 @@ bool ortho = false;
 float azimuth = 0.0f;
 float inclination = 0.0f;
 
-VertexProperty* constructVerticesArray(cy::TriMesh mesh) {
-	Vertex* vertices;
-	Indices* _vertexIndices;
-	Normal* normals;
-	Indices* _normalIndices;
+//std::map<std::string, cy::TriMesh::Mtl> materialMap;
 
-	vertices = new Vertex[currMesh.NV()];
-	for (int i = 0; i < currMesh.NV(); i++) {
+VertexProperty* generateVertexProperties(cy::TriMesh mesh) {
+	//std::vector<cy::TriMesh::Str> _materialNames = new cy::TriMesh::Str*[mesh.NF()];
+	int verticesPerFace = 3;
+	numVertices = mesh.NF() * verticesPerFace;
 
-		vertices[i] = Vertex{ currMesh.V(i).x, currMesh.V(i).y, currMesh.V(i).z };
-	}
+	VertexProperty* verticesArray = new VertexProperty[numVertices];
 
-	_vertexIndices = new Indices[currMesh.NF()];
-	for (int i = 0; i < currMesh.NF(); i++) {
-
-		_vertexIndices[i] = Indices{ currMesh.F(i).v[0], currMesh.F(i).v[1], currMesh.F(i).v[2] };
-	}
-
-	normals = new Normal[currMesh.NVN()];
-	for (int i = 0; i < currMesh.NVN(); i++) {
-
-		normals[i] = Normal{ currMesh.VN(i).x, currMesh.VN(i).y, currMesh.VN(i).z };
-	}
-
-	_normalIndices = new Indices[currMesh.NF()];
-	for (int i = 0; i < currMesh.NF(); i++) {
-
-		_normalIndices[i] = Indices{ currMesh.FN(i).v[0], currMesh.FN(i).v[1], currMesh.FN(i).v[2] };
-	}
-
-	VertexProperty* verticesArray = new VertexProperty[mesh.NF() * 3];
-
+	//std::map<std::string, std::vector<VertexProperty>> vertexMap;
+	GLuint materialIndex = 0;
 	for (int i = 0; i < mesh.NF(); i++) {
-		verticesArray[i * 3].vertex = vertices[_vertexIndices[i].i1];
-		verticesArray[i * 3].normal = normals[_normalIndices[i].i1];
-		verticesArray[i * 3 + 1].vertex = vertices[_vertexIndices[i].i2];
-		verticesArray[i * 3 + 1].normal = normals[_normalIndices[i].i2];
-		verticesArray[i * 3 + 2].vertex = vertices[_vertexIndices[i].i3];
-		verticesArray[i * 3 + 2].normal = normals[_normalIndices[i].i3];
+		for (int j = 0; j < verticesPerFace; j++) {
+			int normalIndex = mesh.FN(i).v[j];
+			cy::Vec3<float> n = mesh.VN(normalIndex);
+			int vertexIndex = mesh.F(i).v[j];
+			cy::Vec3<float> v = mesh.V(vertexIndex);
+			int textureIndex = mesh.FT(i).v[j];
+			cy::Vec3<float> t = mesh.VT(textureIndex);
+
+			VertexProperty p = { Vertex{v.x, v.y, v.z}, Normal{n.x, n.y, n.z}, Texture{t.x, t.y} };
+			verticesArray[i * verticesPerFace + j] = p;
+
+			//cy::TriMesh::Mtl mtl = mesh.M(i);
+			//std::cout << "Duck" << std::endl;
+			//auto it = vertexMap.find((std::string)mtl.name);
+			//if (it != vertexMap.end()) {
+			//	// append to vector
+			//	it->second.push_back(p);
+			//}
+			//else {
+			//	// create new vector
+			//	std::vector<VertexProperty> v;
+			//	v.push_back(p);
+			//	vertexMap.insert(std::pair<std::string, std::vector<VertexProperty>>((std::string)mtl.name, v));
+			//	materialMap.insert(std::pair<std::string, cy::TriMesh::Mtl>((std::string)mtl.name, mtl));
+
+			//} 
+
+		}
 	}
+
+
 
 	return verticesArray;
 
@@ -191,7 +209,7 @@ void parseObj(char* objFilePath) {
 	}
 
 
-	verticesArray = constructVerticesArray(currMesh);
+	verticesArray = generateVertexProperties(currMesh);
 }
 
 void RecompileShaders() {
@@ -209,6 +227,8 @@ void buildShaders() {
 		std::cout << "Program failed to build" << std::endl;
 	}
 }
+
+
 void registerUniforms() {
 	cyProgram.RegisterUniform(timeIndex, "time");
 	cyProgram.RegisterUniform(mvpIndex, "mvp");
@@ -216,16 +236,61 @@ void registerUniforms() {
 	cyProgram.RegisterUniform(modelIndex, "model");
 	cyProgram.RegisterUniform(viewIndex, "view");
 	cyProgram.RegisterUniform(projectionIndex, "projection");
+	cyProgram.RegisterUniform(mvNormalIndex, "mvNormal");
 
 	cyProgram.RegisterUniform(mainLightDirIndex, "mainLightDirection");
-
 	cyProgram.RegisterUniform(ambientIlluminanceIndex, "ambientIlluminance");
-
-	cyProgram.RegisterUniform(diffuseColorIndex, "diffuseColor");
-	cyProgram.RegisterUniform(specularColorIndex, "specularColor");
 	cyProgram.RegisterUniform(smoothnessIndex, "smoothness");
 
-	cyProgram.RegisterUniform(mvNormalIndex, "mvNormal");
+
+
+	cyProgram.RegisterUniform(diffuseTextureIndex, "fragTexture");
+	cyProgram.RegisterUniform(specularTextureIndex, "specularTexture");
+
+
+
+
+	/// diff
+	// gen tex
+	diffuseTexture = cy::GLTexture2D();
+	diffuseTexture.Initialize(); // gen, bind, set filtering and wrapping
+	diffuseTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR); // override default filtering mode
+	diffuseTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT); // override default wrapping mode
+	// load image
+	std::vector<unsigned char> image;
+	unsigned error;
+	unsigned width, height;
+	error = lodepng::decode(image, width, height, "textures\\brick.png");
+	if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+	unsigned char* data = image.data();
+	diffuseTexture.SetImage(data, 4, width, height); // Bind and glTexImage2D
+	diffuseTexture.BuildMipmaps(); // Build mipmaps
+
+	/// spec 
+	// gen tex
+	specularTexture = cy::GLTexture2D();
+	specularTexture.Initialize();
+	specularTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR);
+	specularTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT);
+	// load image
+	image.clear();
+	error = lodepng::decode(image, width, height, "textures\\brick-specular.png");
+	if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+	data = image.data();
+	specularTexture.SetImage(data, 4, width, height);
+	specularTexture.BuildMipmaps();
+
+
+
+	// initial set of any uniform variables (DONT FORGET TO USE PROGRAM)
+	glUseProgram(cyProgram.GetID());
+	cyProgram.SetUniform(diffuseTextureIndex, 0);
+	cyProgram.SetUniform(specularTextureIndex, 1);
+
+	diffuseTexture.Bind(0);
+	specularTexture.Bind(1);
+	glUseProgram(0);
+
 
 	std::cout << "Uniforms registered" << std::endl;
 }
@@ -235,29 +300,21 @@ void setupBuffers() {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	GLuint VBO, EBO;
+	GLuint VBO;
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
 
-	//cyProgram.SetAttribBuffer("pos", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	//glBufferData(GL_ARRAY_BUFFER, currMesh.NV() * sizeof(Vertex), vertices, GL_STATIC_DRAW);
 
 	cyProgram.SetAttribBuffer("pos", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0); 
-	glBufferData(GL_ARRAY_BUFFER, currMesh.NF() * 3 * sizeof(VertexProperty), verticesArray, GL_STATIC_DRAW);
-
-	std::cout << "Set up buffer with " << currMesh.NF() * 3 << " vertices" << std::endl;
-
 	cyProgram.SetAttribBuffer("normal", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
-	glBufferData(GL_ARRAY_BUFFER, currMesh.NF() * 3 * sizeof(VertexProperty), verticesArray, GL_STATIC_DRAW);
+	cyProgram.SetAttribBuffer("texCoord", VBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex) + sizeof(Normal));
 
+	glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(VertexProperty), verticesArray, GL_STATIC_DRAW);
 
-
-
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, currMesh.NF() * sizeof(Indices), _vertexIndices, GL_STATIC_DRAW);
+	std::cout << "Set up buffer with " << currMesh.NF() * 3 << "(" << numVertices << ") vertices" << std::endl;
 
 
 	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void rotateVertex(cy::Vec3<float>& vertex, cy::Matrix4<float> rotationMatrix) {
@@ -347,19 +404,46 @@ void renderScene() {
 	cyProgram.SetUniform(mvpIndex, t.mvp);
 
 	cyProgram.SetUniform(mvNormalIndex, t.mv.GetSubMatrix3().GetInverse().GetTranspose());
+
 	cy::Vec3<float> mainLightDir = lightDirection(azimuth, inclination);
 	cyProgram.SetUniform(mainLightDirIndex, mainLightDir.GetNormalized());
 	cyProgram.SetUniform(ambientIlluminanceIndex, 0.2f);
 
-	cyProgram.SetUniform(diffuseColorIndex, cy::Vec3<float>(1.0f, 0.0f, 0.0f));
-	cyProgram.SetUniform(specularColorIndex, cy::Vec3<float>(1.0f, 1.0f, 1.0f));
 	cyProgram.SetUniform(smoothnessIndex, 32.0f);
 
 
+
+
+
+	//for (auto const& x : verticesArray) {
+	//	cy::TriMesh::Mtl mtl = materialMap.at(x.first);
+	//	std::vector<VertexProperty> vertexProperties = x.second;
+
+	//	unsigned width, height;
+	//	unsigned char* diffMap = loadTexture(mtl.map_Kd, &width, &height);
+	//	diffuseTexture.SetImage(diffMap, 4, width, height);
+	//	diffuseTexture.BuildMipmaps();
+
+	//	unsigned char* specMap = loadTexture(mtl.map_Ks, &width, &height);
+	//	specularTexture.SetImage(specMap, 4, width, height);
+	//	specularTexture.BuildMipmaps();
+
+
+	//	//std::cout << "Material: " << mtl.name << std::endl;
+	//	//std::cout << "Ambient: " << mtl.ambient << std::endl;
+	//	//std::cout << "Diffuse: " << mtl.diffuse << std::endl;
+	//	//std::cout << "Specular: " << mtl.specular << std::endl;
+	//	//std::cout << "Shininess: " << mtl.shininess << std::endl;
+	//	const void* data = vertexProperties.data();
+	//	glBufferData(GL_ARRAY_BUFFER, x.second.size() * sizeof(VertexProperty), data, GL_DYNAMIC_DRAW);
+
+	//}
+
 	glBindVertexArray(VAO);
+
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	//glDrawElements(GL_TRIANGLES, currMesh.NF() * 3, GL_UNSIGNED_INT, 0);
-	glDrawArrays(GL_TRIANGLES, 0, currMesh.NF() * 3);
+	glDrawArrays(GL_TRIANGLES, 0, numVertices);
 
 
 	glUseProgram(0);
@@ -617,3 +701,4 @@ void parseDeltatime() {
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 }
+

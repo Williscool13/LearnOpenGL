@@ -1,11 +1,7 @@
 ﻿  HelloWindow.cpp
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(133,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(139,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(145,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(151,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(158,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(340,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(415,25): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(597,28): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(616,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(152,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(397,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(499,25): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(681,28): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(700,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   LearnOpenGL.vcxproj -> C:\Users\twtw4\source\repos\LearnOpenGL\x64\Debug\LearnOpenGL.exe

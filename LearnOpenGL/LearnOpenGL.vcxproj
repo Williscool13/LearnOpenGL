@@ -134,15 +134,11 @@
   <ItemGroup>
     <ClCompile Include="src\glad\glad.c" />
     <ClCompile Include="src\HelloWindow.cpp" />
+    <ClCompile Include="src\lodepng.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\helloFragmentShader.frag" />
     <None Include="shaders\helloVertexShader.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="textures\AwesomeFace.png" />
-    <Image Include="textures\BrickWallTexture.jpg" />
-    <Image Include="textures\WoodenContainerTexture.jpg" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h" />

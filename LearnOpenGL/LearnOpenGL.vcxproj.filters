@@ -21,6 +21,9 @@
     <ClCompile Include="src\HelloWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\lodepng.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\helloVertexShader.vert">
@@ -29,17 +32,6 @@
     <None Include="shaders\helloFragmentShader.frag">
       <Filter>Source Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="textures\BrickWallTexture.jpg">
-      <Filter>Source Files</Filter>
-    </Image>
-    <Image Include="textures\WoodenContainerTexture.jpg">
-      <Filter>Source Files</Filter>
-    </Image>
-    <Image Include="textures\AwesomeFace.png">
-      <Filter>Source Files</Filter>
-    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
