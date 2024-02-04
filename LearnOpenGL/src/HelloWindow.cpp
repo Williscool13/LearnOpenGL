@@ -108,7 +108,13 @@ GLuint ambientIlluminanceIndex = 9;
 GLuint timeIndex = 11;
 GLuint mainLightDirIndex = 12;
 
+GLuint Ka = 13;
+GLuint Kd = 14;
+GLuint Ks = 15;
+
 GLuint VAO;
+GLuint VBO;
+
 cy::GLSLProgram cyProgram;
 cy::GLTexture2D texture1;
 cy::GLTexture2D texture2;
@@ -120,8 +126,10 @@ int numVertices;
 // Texture
 GLuint diffuseTextureIndex = 100;
 GLuint specularTextureIndex = 101;
+GLuint ambientTextureIndex = 102;
 cy::GLTexture2D diffuseTexture;
 cy::GLTexture2D specularTexture;
+cy::GLTexture2D ambientTexture;
 
 
 // Camera
@@ -139,6 +147,11 @@ float azimuth = 0.0f;
 float inclination = 0.0f;
 
 //std::map<std::string, cy::TriMesh::Mtl> materialMap;
+std::map<int, std::vector<VertexProperty>> materialMap;
+std::map<int, std::vector<unsigned char>> diffuseMaterialTextureMap;
+std::map<int, std::vector<unsigned char>> specularMaterialTextureMap;
+std::map<int, std::vector<unsigned char>> ambientMaterialTextureMap;
+
 
 VertexProperty* generateVertexProperties(cy::TriMesh mesh) {
 	//std::vector<cy::TriMesh::Str> _materialNames = new cy::TriMesh::Str*[mesh.NF()];
@@ -161,29 +174,21 @@ VertexProperty* generateVertexProperties(cy::TriMesh mesh) {
 			VertexProperty p = { Vertex{v.x, v.y, v.z}, Normal{n.x, n.y, n.z}, Texture{t.x, t.y} };
 			verticesArray[i * verticesPerFace + j] = p;
 
-			//cy::TriMesh::Mtl mtl = mesh.M(i);
-			//std::cout << "Duck" << std::endl;
-			//auto it = vertexMap.find((std::string)mtl.name);
-			//if (it != vertexMap.end()) {
-			//	// append to vector
-			//	it->second.push_back(p);
-			//}
-			//else {
-			//	// create new vector
-			//	std::vector<VertexProperty> v;
-			//	v.push_back(p);
-			//	vertexMap.insert(std::pair<std::string, std::vector<VertexProperty>>((std::string)mtl.name, v));
-			//	materialMap.insert(std::pair<std::string, cy::TriMesh::Mtl>((std::string)mtl.name, mtl));
-
-			//} 
-
+			int materialIndex = mesh.GetMaterialIndex(i);
+			auto it = materialMap.find(materialIndex);
+			if (it != materialMap.end()) {
+				materialMap[materialIndex].push_back(p);
+			}
+			else {
+				std::vector<VertexProperty> v;
+				v.push_back(p);
+				materialMap.insert(std::pair<int, std::vector<VertexProperty>>(materialIndex, v));
+			}
 		}
 	}
 
 
-
 	return verticesArray;
-
 }
 
 cy::Matrix4<float> generateOrthoProjectionMatrix(float r, float l, float t, float b, float n, float f) {
@@ -246,6 +251,11 @@ void registerUniforms() {
 
 	cyProgram.RegisterUniform(diffuseTextureIndex, "fragTexture");
 	cyProgram.RegisterUniform(specularTextureIndex, "specularTexture");
+	cyProgram.RegisterUniform(ambientTextureIndex, "ambientTexture");
+
+	cyProgram.RegisterUniform(Ka, "Ka");
+	cyProgram.RegisterUniform(Kd, "Kd");
+	cyProgram.RegisterUniform(Ks, "Ks");
 
 
 
@@ -256,15 +266,15 @@ void registerUniforms() {
 	diffuseTexture.Initialize(); // gen, bind, set filtering and wrapping
 	diffuseTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR); // override default filtering mode
 	diffuseTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT); // override default wrapping mode
-	// load image
-	std::vector<unsigned char> image;
-	unsigned error;
-	unsigned width, height;
-	error = lodepng::decode(image, width, height, "textures\\brick.png");
-	if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-	unsigned char* data = image.data();
-	diffuseTexture.SetImage(data, 4, width, height); // Bind and glTexImage2D
-	diffuseTexture.BuildMipmaps(); // Build mipmaps
+	//// load image
+	//std::vector<unsigned char> image;
+	//unsigned error;
+	//unsigned width, height;
+	//error = lodepng::decode(image, width, height, "textures\\brick.png");
+	//if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+	//unsigned char* data = image.data();
+	//diffuseTexture.SetImage(data, 4, width, height); // Bind and glTexImage2D
+	//diffuseTexture.BuildMipmaps(); // Build mipmaps
 
 	/// spec 
 	// gen tex
@@ -272,23 +282,30 @@ void registerUniforms() {
 	specularTexture.Initialize();
 	specularTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR);
 	specularTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT);
-	// load image
-	image.clear();
-	error = lodepng::decode(image, width, height, "textures\\brick-specular.png");
-	if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-	data = image.data();
-	specularTexture.SetImage(data, 4, width, height);
-	specularTexture.BuildMipmaps();
+	//// load image
+	//image.clear();
+	//error = lodepng::decode(image, width, height, "textures\\brick-specular.png");
+	//if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+	//data = image.data();
+	//specularTexture.SetImage(data, 4, width, height);
+	//specularTexture.BuildMipmaps();
 
+	// ambient
+	ambientTexture = cy::GLTexture2D();
+	ambientTexture.Initialize();
+	ambientTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR);
+	ambientTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT);
 
 
 	// initial set of any uniform variables (DONT FORGET TO USE PROGRAM)
 	glUseProgram(cyProgram.GetID());
 	cyProgram.SetUniform(diffuseTextureIndex, 0);
 	cyProgram.SetUniform(specularTextureIndex, 1);
+	cyProgram.SetUniform(ambientTextureIndex, 2);
 
 	diffuseTexture.Bind(0);
 	specularTexture.Bind(1);
+	ambientTexture.Bind(2);
 	glUseProgram(0);
 
 
@@ -300,17 +317,15 @@ void setupBuffers() {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	GLuint VBO;
 	glGenBuffers(1, &VBO);
 
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	// doing dynamic draws in render loop
+	//glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(VertexProperty), verticesArray, GL_STATIC_DRAW);
 
 	cyProgram.SetAttribBuffer("pos", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0); 
 	cyProgram.SetAttribBuffer("normal", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
 	cyProgram.SetAttribBuffer("texCoord", VBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex) + sizeof(Normal));
-
-	glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(VertexProperty), verticesArray, GL_STATIC_DRAW);
-
-	std::cout << "Set up buffer with " << currMesh.NF() * 3 << "(" << numVertices << ") vertices" << std::endl;
 
 
 	glBindVertexArray(0);
@@ -327,8 +342,11 @@ Transformation setupMVP() {
 	cy::Matrix4<float> model = cy::Matrix4f();
 	model.SetIdentity();
 	
-	model = cy::Matrix4<float>::RotationY(90.0f * cy::Pi<float>() / 180.0f) * model;
-	model = cy::Matrix4<float>::RotationZ(90.0f * cy::Pi<float>() / 180.0f) * model;
+	//model = cy::Matrix4<float>::RotationY(90.0f * cy::Pi<float>() / 180.0f) * model;
+	//model = cy::Matrix4<float>::RotationZ(90.0f * cy::Pi<float>() / 180.0f) * model;
+
+	//6model.SetScale(0.01f);
+
 
 	if (!currMesh.IsBoundBoxReady()) {
 		currMesh.ComputeBoundingBox();
@@ -391,10 +409,78 @@ cy::Vec3<float> lightDirection(float az, float inc) {
 	return cy::Vec3<float>(x, y, z);
 }
 
+enum textureType {
+	DIFFUSE,
+	SPECULAR,
+	AMBIENT,
+};
+
+std::vector<unsigned char> getTexture(int materialIndex, textureType t, unsigned* width, unsigned* height) {
+	if (t == DIFFUSE) {
+		auto contained = diffuseMaterialTextureMap.find(materialIndex);
+		if (contained != diffuseMaterialTextureMap.end()) {
+			return contained->second;
+		}
+	}
+	else if (t == SPECULAR) {
+		auto contained = specularMaterialTextureMap.find(materialIndex);
+		if (contained != specularMaterialTextureMap.end()) {
+			return contained->second;
+		}
+	}
+	else if (t == AMBIENT) {
+		auto contained = ambientMaterialTextureMap.find(materialIndex);
+		if (contained != ambientMaterialTextureMap.end()) {
+			return contained->second;
+		}
+	}
+	
+	cy::TriMesh::Mtl mtl = currMesh.M(materialIndex);
+	std::vector<unsigned char> image;
+	unsigned error;
+	unsigned char* map;
+	char* pathToTexture;// = mtl.map_Kd.data;
+	switch (t) {
+		case DIFFUSE:
+			pathToTexture = mtl.map_Kd.data;
+			break;
+		case SPECULAR:
+			pathToTexture = mtl.map_Ks.data;
+			break;
+		case AMBIENT:
+			pathToTexture = mtl.map_Ka.data;
+			break;
+		default:
+			pathToTexture = nullptr;
+	}
+
+	// no texture
+	if (pathToTexture == nullptr) { return std::vector<unsigned char> {}; }
+
+	std::string _pathToTexture = "textures\\" + std::string(pathToTexture);
+
+	error = lodepng::decode(image, *width, *height, _pathToTexture);
+	if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+
+	switch (t) {
+		case DIFFUSE:
+			diffuseMaterialTextureMap.insert(std::pair<int, std::vector<unsigned char>>(materialIndex, image));
+			break;
+		case SPECULAR:
+			specularMaterialTextureMap.insert(std::pair<int, std::vector<unsigned char>>(materialIndex, image));
+			break;
+		case AMBIENT:
+			ambientMaterialTextureMap.insert(std::pair<int, std::vector<unsigned char>>(materialIndex, image));
+			break;
+	}
+	return image;
+}
+
+
 void renderScene() {
 	glUseProgram(cyProgram.GetID());
 
-	float timeValue = glfwGetTime();
+	float timeValue = (float)glfwGetTime();
 	cyProgram.SetUniform(timeIndex, timeValue);
 	Transformation t = setupMVP();
 	cyProgram.SetUniform(modelIndex, t.model);
@@ -409,41 +495,91 @@ void renderScene() {
 	cyProgram.SetUniform(mainLightDirIndex, mainLightDir.GetNormalized());
 	cyProgram.SetUniform(ambientIlluminanceIndex, 0.2f);
 
-	cyProgram.SetUniform(smoothnessIndex, 32.0f);
-
-
-
-
-
-	//for (auto const& x : verticesArray) {
-	//	cy::TriMesh::Mtl mtl = materialMap.at(x.first);
-	//	std::vector<VertexProperty> vertexProperties = x.second;
-
-	//	unsigned width, height;
-	//	unsigned char* diffMap = loadTexture(mtl.map_Kd, &width, &height);
-	//	diffuseTexture.SetImage(diffMap, 4, width, height);
-	//	diffuseTexture.BuildMipmaps();
-
-	//	unsigned char* specMap = loadTexture(mtl.map_Ks, &width, &height);
-	//	specularTexture.SetImage(specMap, 4, width, height);
-	//	specularTexture.BuildMipmaps();
-
-
-	//	//std::cout << "Material: " << mtl.name << std::endl;
-	//	//std::cout << "Ambient: " << mtl.ambient << std::endl;
-	//	//std::cout << "Diffuse: " << mtl.diffuse << std::endl;
-	//	//std::cout << "Specular: " << mtl.specular << std::endl;
-	//	//std::cout << "Shininess: " << mtl.shininess << std::endl;
-	//	const void* data = vertexProperties.data();
-	//	glBufferData(GL_ARRAY_BUFFER, x.second.size() * sizeof(VertexProperty), data, GL_DYNAMIC_DRAW);
-
-	//}
+	//cyProgram.SetUniform(smoothnessIndex, 32.0f);
 
 	glBindVertexArray(VAO);
 
+	for (auto const& x : materialMap) {
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+		cy::TriMesh::Mtl mtl = currMesh.M(x.first);
+		std::vector<VertexProperty> vertexProperties = x.second;
+
+		unsigned width, height;
+		std::vector<unsigned char> diffMap = getTexture(x.first, DIFFUSE, &width, &height);
+
+		if (diffMap.size() != 0) {
+			diffuseTexture.SetImage(diffMap.data(), 4, width, height);
+			diffuseTexture.BuildMipmaps();
+			cyProgram.SetUniform(Kd, cy::Vec4<float>(0.0f, 0.0f, 0.0f, 0.0f));
+		}
+		else {
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			cyProgram.SetUniform(Kd, cy::Vec4<float>(mtl.Kd[0], mtl.Kd[1], mtl.Kd[2], 1.0f));
+
+		}
+
+		std::vector<unsigned char> specMap = getTexture(x.first, SPECULAR, &width, &height);
+		if (specMap.size() != 0) {
+			specularTexture.SetImage(specMap.data(), 4, width, height);
+			specularTexture.BuildMipmaps();
+			cyProgram.SetUniform(Ks, cy::Vec4<float>(0.0f, 0.0f, 0.0f, 0.0f));
+		}
+		else {
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			cyProgram.SetUniform(Ks, cy::Vec4<float>(mtl.Ks[0], mtl.Ks[1], mtl.Ks[2], 1.0f));
+		}
+
+		std::vector<unsigned char> ambMap = getTexture(x.first, AMBIENT, &width, &height);
+		if (ambMap.size() != 0) {
+			ambientTexture.SetImage(ambMap.data(), 4, width, height);
+			ambientTexture.BuildMipmaps();
+			cyProgram.SetUniform(Ka, cy::Vec4<float>(0.0f, 0.0f, 0.0f, 0.0f));
+		}
+		else {
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			cyProgram.SetUniform(Ka, cy::Vec4<float>(mtl.Ka[0], mtl.Ka[1], mtl.Ka[2], 1.0f));
+		}
+
+
+		cyProgram.SetUniform(smoothnessIndex, mtl.Ns);
+		
+		glBufferData(GL_ARRAY_BUFFER, vertexProperties.size() * sizeof(VertexProperty), vertexProperties.data(), GL_DYNAMIC_DRAW);
+		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size());
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		// set buffer data
+
+		/*unsigned width, height;
+		diffuseTexture.SetImage(diffMap, 4, width, height);
+		diffuseTexture.BuildMipmaps();
+
+		unsigned char* specMap = loadTexture(mtl.map_Ks, &width, &height);
+		specularTexture.SetImage(specMap, 4, width, height);
+		specularTexture.BuildMipmaps();
+
+		cyProgram.SetUniform(diffuseTextureIndex, 0);
+		cyProgram.SetUniform(specularTextureIndex, 1);
+
+		diffuseTexture.Bind(0);
+		specularTexture.Bind(1);
+
+		const void* data = vertexProperties.data();
+		glBufferData(GL_ARRAY_BUFFER, vertexProperties.size() * sizeof(VertexProperty), data, GL_DYNAMIC_DRAW);
+
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size());
+		glBindVertexArray(0);*/
+	}
+
+
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	//glDrawElements(GL_TRIANGLES, currMesh.NF() * 3, GL_UNSIGNED_INT, 0);
-	glDrawArrays(GL_TRIANGLES, 0, numVertices);
+	//glDrawArrays(GL_TRIANGLES, 0, numVertices);
 
 
 	glUseProgram(0);

@@ -26,6 +26,10 @@ out vec4 color;
 
 uniform sampler2D fragTexture;
 uniform sampler2D specularTexture;
+uniform sampler2D ambientTexture;
+uniform vec4 Ka;
+uniform vec4 Kd;
+uniform vec4 Ks;
 
 vec3 gammaCorrect(vec3 color, float gamma)
 {
@@ -40,22 +44,25 @@ void main()
 
     vec4 diffTex = texture(fragTexture, uv);
     vec4 specTex = texture(specularTexture, uv);
+    vec4 ambTex = texture(ambientTexture, uv);
 
+    vec3 ambient = ambTex.rgb;
 
-    vec3 ambient = ambientIlluminance * diffTex.rgb;
-
-    vec3 diffuse = max(dot(normalize(viewNormal), normalize(viewLightDirection)), 0.0) * diffTex.rgb;
-
+    vec3 diffColor = mix(diffTex.rgb, Kd.rgb, Kd.a);
+    float diffNDotL = max(dot(normalize(viewNormal), normalize(viewLightDirection)), 0.0);
+    vec3 diffuse = diffColor * diffNDotL;
+    
+    vec3 specColor = mix(specTex.rgb, Ks.rgb, Ks.a);
     vec3 reflectVec = normalize(reflect(-viewLightDirection, normalize(viewNormal)));
     vec3 viewDir = normalize(-viewPosition);
     float specIntensity = pow(max(dot(reflectVec, viewDir), 0.0), smoothness);
-    vec3 specular = specTex.rgb * specIntensity;
+    vec3 specular = specColor * specIntensity;
 
 
 
 
     // diffuse only
-    //color = vec4(diffTex.rgb, 1);
+	//color = vec4(diffuse , 1);
 
     // specular only 
     //color = vec4(specular, 1);
@@ -65,7 +72,7 @@ void main()
 
     // diffuse + specular + ambient
     float mainLightIlluminance = 1.0f;
-    color = vec4((diffuse + specular) * mainLightIlluminance + ambient, 1);
+    color = vec4((diffuse + specular) * mainLightIlluminance + ambient * mainLightIlluminance, 1);
 
     // normals
     //color = texture(fragTexture, uv);
