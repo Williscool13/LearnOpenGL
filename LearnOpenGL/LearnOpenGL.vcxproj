@@ -142,6 +142,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\deltatime.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\gameobject.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\inputs.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\utilities.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\windowProperties.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
