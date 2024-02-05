@@ -132,6 +132,18 @@ cy::GLTexture2D specularTexture;
 cy::GLTexture2D ambientTexture;
 
 
+GLuint framebuffer;
+GLuint depthBuffer;
+GLuint renderedTexture;
+cy::GLRenderTexture2D renderTexture;
+int renderTextureChannels = 3;
+GLsizei viewportWidth = 800;
+GLsizei viewportHeight = 600;
+GLsizei renderTextureWidth = 800;
+GLsizei renderTextureHeight = 600;
+cy::GLRenderDepth2D renderDepth;
+
+
 // Camera
 /// Camera Style
 bool freeCam = false;
@@ -260,24 +272,54 @@ void registerUniforms() {
 
 
 
-	/// diff
+	/// Diffuse Texture
 	diffuseTexture = cy::GLTexture2D();
 	diffuseTexture.Bind(0);
 	diffuseTexture.Initialize(); // gen, bind, set filtering and wrapping
 	diffuseTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR); // override default filtering mode
 	diffuseTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT); // override default wrapping mode
-	/// spec 
+	// Specular Texture
 	specularTexture = cy::GLTexture2D();
 	specularTexture.Bind(1);
 	specularTexture.Initialize();
 	specularTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
 	specularTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT);
-	// ambient
+	// Ambient Texture
 	ambientTexture = cy::GLTexture2D();
 	ambientTexture.Bind(2);
 	ambientTexture.Initialize();
 	ambientTexture.SetFilteringMode(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
 	ambientTexture.SetWrappingMode(GL_REPEAT, GL_REPEAT);
+
+	// Render to Texture
+	// init frame buffer
+	GLint _odfb; // get to restore original draw frame buffer after setting up render texture
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &_odfb); 
+	glGenFramebuffers(1, &framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	// set up render texture
+	glGenTextures(1, &renderedTexture);
+	glBindTexture(GL_TEXTURE_2D, renderedTexture);	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, renderTextureWidth, renderTextureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// set up depth buffer
+	glGenRenderbuffers(1, &depthBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, renderTextureWidth, renderTextureHeight);
+
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer); // attach depth buffer to the frame buffer
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0); // attach the texture to the frame buffer
+
+	GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, drawBuffers);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Frame buffer is not complete" << std::endl;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, _odfb);
+
+
 
 
 	// initial set of any uniform variables (DONT FORGET TO USE PROGRAM)
@@ -327,7 +369,7 @@ Transformation setupMVP() {
 	//model = cy::Matrix4<float>::RotationY(90.0f * cy::Pi<float>() / 180.0f) * model;
 	//model = cy::Matrix4<float>::RotationZ(90.0f * cy::Pi<float>() / 180.0f) * model;
 
-	//6model.SetScale(0.01f);
+	//model.SetScale(0.05f);
 
 
 	if (!currMesh.IsBoundBoxReady()) {
@@ -497,7 +539,7 @@ void renderScene() {
 		}
 		else {
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
 			cyProgram.SetUniform(Kd, cy::Vec4<float>(mtl.Kd[0], mtl.Kd[1], mtl.Kd[2], 1.0f));
 
 		}
@@ -510,7 +552,7 @@ void renderScene() {
 		}
 		else {
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
 			cyProgram.SetUniform(Ks, cy::Vec4<float>(mtl.Ks[0], mtl.Ks[1], mtl.Ks[2], 1.0f));
 		}
 
@@ -522,7 +564,7 @@ void renderScene() {
 		}
 		else {
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
 			cyProgram.SetUniform(Ka, cy::Vec4<float>(mtl.Ka[0], mtl.Ka[1], mtl.Ka[2], 1.0f));
 		}
 
@@ -530,43 +572,36 @@ void renderScene() {
 		cyProgram.SetUniform(smoothnessIndex, mtl.Ns);
 		
 		glBufferData(GL_ARRAY_BUFFER, vertexProperties.size() * sizeof(VertexProperty), vertexProperties.data(), GL_DYNAMIC_DRAW);
+
+		GLint _odfb;
+		glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &_odfb);
+	
+		// draw first to frame buffer
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+		glViewport(0, 0, renderTextureWidth, renderTextureHeight);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size());
+		glGenerateMipmap(renderedTexture); // generate mipmaps for the render texture
+		// mipmaps not always necessary. Depends on the use case
+
+
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glViewport(0, 0, viewportWidth, viewportHeight);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// bind render texture as a texture to the main pass
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, renderedTexture);
+		// draw final image to back buffer and swap later
+		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size());
+
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		// set buffer data
-
-		/*unsigned width, height;
-		diffuseTexture.SetImage(diffMap, 4, width, height);
-		diffuseTexture.BuildMipmaps();
-
-		unsigned char* specMap = loadTexture(mtl.map_Ks, &width, &height);
-		specularTexture.SetImage(specMap, 4, width, height);
-		specularTexture.BuildMipmaps();
-
-		cyProgram.SetUniform(diffuseTextureIndex, 0);
-		cyProgram.SetUniform(specularTextureIndex, 1);
-
-		diffuseTexture.Bind(0);
-		specularTexture.Bind(1);
-
-		const void* data = vertexProperties.data();
-		glBufferData(GL_ARRAY_BUFFER, vertexProperties.size() * sizeof(VertexProperty), data, GL_DYNAMIC_DRAW);
-
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size());
-		glBindVertexArray(0);*/
 	}
-
-
-	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//glDrawElements(GL_TRIANGLES, currMesh.NF() * 3, GL_UNSIGNED_INT, 0);
-	//glDrawArrays(GL_TRIANGLES, 0, numVertices);
-
 
 	glUseProgram(0);
     glBindVertexArray(0);
-
 }
 
 int main(int argc, char* argv[])
@@ -625,7 +660,7 @@ int main(int argc, char* argv[])
 
 	while (!glfwWindowShouldClose(window))
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		parseDeltatime();
 		parseInputs();
 
@@ -652,7 +687,9 @@ const float sensitivity = 0.1f;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	glViewport(0, 0, width, height);
+	viewportWidth = width;
+	viewportHeight = height;
+	glViewport(0, 0, viewportWidth, viewportHeight);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
