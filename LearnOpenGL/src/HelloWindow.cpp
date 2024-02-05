@@ -132,16 +132,12 @@ cy::GLTexture2D specularTexture;
 cy::GLTexture2D ambientTexture;
 
 
-GLuint framebuffer;
-GLuint depthBuffer;
-GLuint renderedTexture;
-cy::GLRenderTexture2D renderTexture;
+cy::GLRenderTexture2D renderBuffer;
 int renderTextureChannels = 3;
 GLsizei viewportWidth = 800;
 GLsizei viewportHeight = 600;
 GLsizei renderTextureWidth = 800;
 GLsizei renderTextureHeight = 600;
-cy::GLRenderDepth2D renderDepth;
 
 
 // Camera
@@ -293,31 +289,10 @@ void registerUniforms() {
 
 	// Render to Texture
 	// init frame buffer
-	GLint _odfb; // get to restore original draw frame buffer after setting up render texture
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &_odfb); 
-	glGenFramebuffers(1, &framebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	// set up render texture
-	glGenTextures(1, &renderedTexture);
-	glBindTexture(GL_TEXTURE_2D, renderedTexture);	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, renderTextureWidth, renderTextureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	// set up depth buffer
-	glGenRenderbuffers(1, &depthBuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, renderTextureWidth, renderTextureHeight);
+	renderBuffer = cy::GLRenderTexture2D();
+	renderBuffer.Initialize(true, renderTextureChannels, renderTextureWidth, renderTextureHeight);
+	renderBuffer.Bind();
 
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer); // attach depth buffer to the frame buffer
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0); // attach the texture to the frame buffer
-
-	GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, drawBuffers);
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		std::cout << "Frame buffer is not complete" << std::endl;
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, _odfb);
 
 
 
@@ -577,24 +552,21 @@ void renderScene() {
 		glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &_odfb);
 	
 		// draw first to frame buffer
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
-		glViewport(0, 0, renderTextureWidth, renderTextureHeight);
+		renderBuffer.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size());
-		glGenerateMipmap(renderedTexture); // generate mipmaps for the render texture
-		// mipmaps not always necessary. Depends on the use case
-
+		renderBuffer.BuildTextureMipmaps(); // generate mipmaps for the render texture. mipmaps not always necessary. Depends on the use case.
+		renderBuffer.Unbind();
 
 
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glViewport(0, 0, viewportWidth, viewportHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// bind render texture as a texture to the main pass
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, renderedTexture);
-		// draw final image to back buffer and swap later
-		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size());
+
+		renderBuffer.BindTexture(3); // bind texture to one of the texture units
+		
+		glDrawArrays(GL_TRIANGLES, 0, vertexProperties.size()); // draw final image to back buffer and swap later
 
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
