@@ -36,9 +36,11 @@
 
 void processInputs(GLFWwindow* window);
 cy::GLSLProgram CreateObjectProgram();
-void setupBuffers(cy::GLSLProgram& program, GameObject gameObject);
-void renderObject(cy::GLSLProgram& program, GameObject gameobject, const GLuint vao);
-void rotateObject(GameObject& gameObject);
+cy::GLSLProgram CreatePlaneProgram();
+void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject);
+void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao);
+void renderPlane(cy::GLSLProgram& program, const GLuint& vao);
+void rotate(GameObject& gameObject);
 
 
 int renderTextureChannels = 3;
@@ -53,212 +55,44 @@ bool freeCam = false;
 bool ortho = false;
 
 /// Main Object Rotation and Translation
-float y = 0.0f;
-float p = 0.0f;
-float d = -20.0f;
+float cameraYaw = 0.0f;
+float cameraPitch = 0.0f;
+float cameraDistance = -30.0f;
 /// Plane Model Rotation and Translation
-float plane_p = 45.0f;
-float plane_y = 45.0f;
-float plane_d = -20.0f;
+//float plane_p = 45.0f;
+//float plane_y = 45.0f;
+//float plane_d = -20.0f;
 
 // Main Light
-float azimuth = 0.0f;
-float inclination = 0.0f;
+float lightYaw = 0.0f;
+float lightPitch = 0.0f;
 
-//cy::GLTexture2D diffuseTexture;
-//cy::GLTexture2D specularTexture;
-//cy::GLTexture2D ambientTexture;
-//cy::GLRenderTexture2D renderTexture;
-//
-//cy::GLSLProgram objectProgram;
-//cy::GLSLProgram _planeShader;
-//
-//GLuint objectVAO;
-//GLuint objectVBO;
-//GLuint planeVAO;
-//GLuint planeVBO;
+cy::GLTexture2D diffuseTexture;
+cy::GLTexture2D specularTexture;
+cy::GLTexture2D ambientTexture;
 
-std::map<int, std::vector<unsigned char>> diffuseMaterialTextureMap;
-std::map<int, std::vector<unsigned char>> specularMaterialTextureMap;
-std::map<int, std::vector<unsigned char>> ambientMaterialTextureMap;
-
-
-
-
-//cy::GLSLProgram setupObjectShader() {
-//	cy::GLSLProgram objectShader = compileShaders("shaders\\helloVertexShader.vert", "shaders\\helloFragmentShader.frag");
-//
-//
-//	// Uniforms
-//	int baseindex = 200;
-//	// time
-//	objectShader.RegisterUniform(baseindex, "time");
-//	baseindex += 1;
-//	// transforms
-//	 const char* transforms = "mvp mv model view projection mvNormal";
-//	objectShader.RegisterUniforms(transforms, baseindex);
-//	baseindex += 6;
-//	// light properties
-//	const char* light = "mainLightDirection ambientIlluminance";
-//	objectShader.RegisterUniforms(light, baseindex);
-//	baseindex += 2;
-//	// material properties
-//	const char* material = "fragTexture specularTexture ambientTexture Ka Kd Ks specularExponent";
-//	objectShader.RegisterUniforms(material, baseindex);
-//	baseindex += 6;
-//
-//	objectShader.Bind();
-//
-//	objectShader.SetUniform("fragTexture", 0);
-//	objectShader.SetUniform("specularTexture", 1);
-//	objectShader.SetUniform("ambientTexture", 2);
-//	
-//
-//	return objectShader;	
-//}
-
-
-
-//void setupTextureUnits() {
-//	objectProgram.Bind();
-//	// Texture Units
-//	diffuseTexture = cy::GLTexture2D();
-//	diffuseTexture.Bind(0);
-//	diffuseTexture.Initialize();
-//	specularTexture = cy::GLTexture2D();
-//	specularTexture.Bind(1);
-//	specularTexture.Initialize();
-//	ambientTexture = cy::GLTexture2D();
-//	ambientTexture.Bind(2);
-//	ambientTexture.Initialize();
-//	renderTexture.BindTexture(3);
-//	renderTexture.Initialize(true, 3, 800, 600);
-//
-//	glUseProgram(0);
-//}
+cy::GLRenderTexture2D renderTexture;
 
 
 
 
 
-//void setupBuffers() {
-//	objectProgram.Bind();
-//	// object 
-//	glGenVertexArrays(1, &objectVAO);
-//	glBindVertexArray(objectVAO);
-//
-//	glGenBuffers(1, &objectVBO);
-//	glBindBuffer(GL_ARRAY_BUFFER, objectVBO);
-//	glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
-//
-//	objectProgram.SetAttribBuffer("pos", objectVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
-//	objectProgram.SetAttribBuffer("normal", objectVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
-//	objectProgram.SetAttribBuffer("texCoord", objectVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex) + sizeof(Normal));
-//
-//	std::cout << "Object vertex array object created" << std::endl;
-//
-//	glBindVertexArray(0);
-//	// plane
-//	/*_planeShader.Bind();
-//	glGenVertexArrays(1, &planeVAO);
-//	glBindVertexArray(planeVAO);
-//
-//	glGenBuffers(1, &planeVBO);
-//	glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-//
-//	_planeShader.SetAttribBuffer("pos", planeVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
-//	_planeShader.SetAttribBuffer("normal", planeVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
-//	_planeShader.SetAttribBuffer("texCoord", planeVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex) + sizeof(Normal));*/
-//
-//
-//	//glBindVertexArray(0);
-//}
-
-
-
-
-
-
-enum textureType {
-	DIFFUSE,
-	SPECULAR,
-	AMBIENT,
+VertexProperty* planeVertices = new VertexProperty[6]{
+	{Vertex{-1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}},
+	{Vertex{1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 0.0f}},
+	{Vertex{1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
+	{Vertex{1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
+	{Vertex{-1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 1.0f}},
+	{Vertex{-1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}}
 };
 
-/// <summary>
-/// Texture Caching
-/// </summary>
-/// <param name="materialIndex"></param>
-/// <param name="t"></param>
-/// <param name="width"></param>
-/// <param name="height"></param>
-/// <returns></returns>
-std::vector<unsigned char> getTexture(int materialIndex, textureType t, unsigned* width, unsigned* height, cy::TriMesh::Mtl material) {
-	if (t == DIFFUSE) {
-		auto contained = diffuseMaterialTextureMap.find(materialIndex);
-		if (contained != diffuseMaterialTextureMap.end()) {
-			return contained->second;
-		}
-	}
-	else if (t == SPECULAR) {
-		auto contained = specularMaterialTextureMap.find(materialIndex);
-		if (contained != specularMaterialTextureMap.end()) {
-			return contained->second;
-		}
-	}
-	else if (t == AMBIENT) {
-		auto contained = ambientMaterialTextureMap.find(materialIndex);
-		if (contained != ambientMaterialTextureMap.end()) {
-			return contained->second;
-		}
-	}
-	
-	cy::TriMesh::Mtl mtl = material;
-	std::vector<unsigned char> image;
-	unsigned error;
-	char* pathToTexture;// = mtl.map_Kd.data;
-	switch (t) {
-		case DIFFUSE:
-			pathToTexture = mtl.map_Kd.data;
-			break;
-		case SPECULAR:
-			pathToTexture = mtl.map_Ks.data;
-			break;
-		case AMBIENT:
-			pathToTexture = mtl.map_Ka.data;
-			break;
-		default:
-			pathToTexture = nullptr;
-	}
-
-	// no texture
-	if (pathToTexture == nullptr) { return std::vector<unsigned char> {}; }
-
-	std::string _pathToTexture = "textures\\" + std::string(pathToTexture);
-	std::cout << "Loading texture: " << _pathToTexture << std::endl;
-
-	error = lodepng::decode(image, *width, *height, _pathToTexture);
-	if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-
-	switch (t) {
-		case DIFFUSE:
-			diffuseMaterialTextureMap.insert(std::pair<int, std::vector<unsigned char>>(materialIndex, image));
-			break;
-		case SPECULAR:
-			specularMaterialTextureMap.insert(std::pair<int, std::vector<unsigned char>>(materialIndex, image));
-			break;
-		case AMBIENT:
-			ambientMaterialTextureMap.insert(std::pair<int, std::vector<unsigned char>>(materialIndex, image));
-			break;
-	}
-	return image;
-}
 
 
 
 
 
-unsigned int VBO, VAO;
+GLuint VBO, VAO;
+GLuint planeVBO, planeVAO;
 int main(int argc, char* argv[])
 {
 	#pragma region Initialization
@@ -302,7 +136,7 @@ int main(int argc, char* argv[])
 	#pragma endregion 
 
 
-	//glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 
 	glClearColor(0.5f, 0.5f, 0.8f, 1.0f);
 
@@ -310,12 +144,28 @@ int main(int argc, char* argv[])
 	std::cout << "Supplied obj file: " << objFilePath << std::endl;
 
 
-	cy::GLSLProgram program = CreateObjectProgram();
+	diffuseTexture = cy::GLTexture2D();
+	specularTexture = cy::GLTexture2D();
+	ambientTexture = cy::GLTexture2D();
+	renderTexture = cy::GLRenderTexture2D();
 
-	GameObject mainObject(objFilePath);
-	mainObject.ApplyScale(cy::Vec3f(0.3f));
-	setupBuffers(program, mainObject);
+	glActiveTexture(GL_TEXTURE0);
+	diffuseTexture.Initialize();
+	glActiveTexture(GL_TEXTURE1);
+	specularTexture.Initialize();
+	glActiveTexture(GL_TEXTURE2);
+	ambientTexture.Initialize();
+	glActiveTexture(GL_TEXTURE3);
+	renderTexture.Initialize(true, 3, viewportWidth, viewportHeight);
 
+
+
+	cy::GLSLProgram objectProgram = CreateObjectProgram();
+	cy::GLSLProgram planeProgram = CreatePlaneProgram();
+
+	GameObject mainObject = GameObject(objFilePath);
+	mainObject.setYaw(-90.0f);
+	setupBuffers(objectProgram, mainObject);
 
 	// simple texture to send to the shader
 
@@ -324,18 +174,22 @@ int main(int argc, char* argv[])
 
 		// do stuff with inputs
 		processInputs(window);
-		rotateObject(mainObject);
+		rotate(mainObject);
 		resetDeltas();
 
 		calculateDeltaTime();
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		// draw our first triangle
-		renderObject(program, mainObject, VAO);
+		//renderTexture.Bind();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		renderObject(objectProgram, mainObject, VAO);
+		//renderTexture.Unbind();
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//renderPlane(planeProgram, planeVAO);
+		
+
 
 		//std::cout << "Object's position is " << mainObject.Position.x << ", " << mainObject.Position.y << ", " << mainObject.Position.z << std::endl;
-		//renderScene(program, VAO, 6);
 		
 
 		glfwSwapBuffers(window);
@@ -346,24 +200,52 @@ int main(int argc, char* argv[])
 	glfwTerminate();
 	return 0;
 }
-bool center = true;
-void renderObject(cy::GLSLProgram& program, GameObject gameobject, const GLuint vao) {
+void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao) {
 	program.Bind();
 	glBindVertexArray(vao);
 
 	// set transforms (as it is the same for all materials under the same object)
-	Transformation t = setupMVP(gameobject, center);
-	program.SetUniform("mvp", t.mvp);
-	program.SetUniform("mv", t.mv);
-	program.SetUniform("m", t.model);
-	program.SetUniform("v", t.view);
-	program.SetUniform("p", t.projection);
-	program.SetUniform("mvN", t.mv.GetSubMatrix3().GetInverse().GetTranspose());
+	cy::Matrix4<float> model = gameobject.GetModelMatrix(true);
+
+	cy::Matrix4f view = cy::Matrix4f::Identity();
+	view.SetRotationXYZ(degToRad(cameraYaw), degToRad(cameraPitch), 0.0f);
+	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, cameraDistance));
+
+	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 800.0f / 600.0f, 0.1f, 1000.0f);
+	
+	cy::Matrix4f mvp = projection * view * model;
+	cy::Matrix4f mv = view * model;
+
+	program.SetUniform("time", (float)glfwGetTime());
+	program.SetUniform("mvp", mvp);
+	program.SetUniform("mv", mv);
+	program.SetUniform("m", model);
+	program.SetUniform("v", view);
+	program.SetUniform("p", projection);
+	program.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
+
+	cy::Vec3f _lightDirection = lightDirection(lightYaw, lightPitch);
+	program.SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
+	program.SetUniform("ambientIlluminance", 0.2f);
+	program.SetUniform("mainLightIlluminance", 1.0f);
 
 	int cummulativeVertexIndex = 0;
 	for (int i = 0; i < gameobject.getMaterialCount(); i++) {
 		int materialFaceCount = gameobject.getMaterialFaceCount(i) * gameobject.getVerticesPerFace();
-		// set material properties
+
+
+		// set per material properties
+		cy::TriMesh::Mtl _m = gameobject.getMaterial(i);
+		program.SetUniform("Ka", cy::Vec3f(_m.Ka[0], _m.Ka[1], _m.Ka[2]));
+		program.SetUniform("Kd", cy::Vec3f(_m.Kd[0], _m.Kd[1], _m.Kd[2]));
+		program.SetUniform("Ks", cy::Vec3f(_m.Ks[0], _m.Ks[1], _m.Ks[2]));
+		program.SetUniform("specularExponent", _m.Ns);
+
+		
+		diffuseTexture.SetImage(gameobject.GetDiffuseTexture(i).texture.data(), 4, gameobject.GetDiffuseTexture(i).width, gameobject.GetDiffuseTexture(i).height);
+		specularTexture.SetImage(gameobject.GetSpecularTexture(i).texture.data(), 4, gameobject.GetSpecularTexture(i).width, gameobject.GetSpecularTexture(i).height);
+		ambientTexture.SetImage(gameobject.GetAmbientTexture(i).texture.data(), 4, gameobject.GetAmbientTexture(i).width, gameobject.GetAmbientTexture(i).height);
+
 		glDrawArrays(GL_TRIANGLES, cummulativeVertexIndex, materialFaceCount);
 		cummulativeVertexIndex += materialFaceCount;
 
@@ -371,8 +253,34 @@ void renderObject(cy::GLSLProgram& program, GameObject gameobject, const GLuint 
 	}
 }
 
+void renderPlane(cy::GLSLProgram& program, const GLuint& vao) {
+	program.Bind();
+	glBindVertexArray(vao);
 
-void setupBuffers(cy::GLSLProgram& program, GameObject gameObject) {
+	cy::Matrix4f model = cy::Matrix4f::Identity();
+
+	cy::Matrix4f view = cy::Matrix4f::Identity();
+	view.SetRotationXYZ(degToRad(cameraYaw), degToRad(cameraPitch), 0.0f);
+	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, cameraDistance));
+	
+	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 800.0f / 600.0f, 0.1f, 1000.0f);
+
+	cy::Matrix4f mvp = projection * view * model;
+	cy::Matrix4f mv = view * model;
+
+	program.SetUniform("time", (float)glfwGetTime());
+	program.SetUniform("mvp", mvp);
+	program.SetUniform("mv", mv);
+	program.SetUniform("m", model);
+	program.SetUniform("v", view);
+	program.SetUniform("p", projection);
+	program.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+}
+
+void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject) {
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 
@@ -383,6 +291,19 @@ void setupBuffers(cy::GLSLProgram& program, GameObject gameObject) {
 	program.SetAttribBuffer("pos", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
 	program.SetAttribBuffer("normal", VBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
 	program.SetAttribBuffer("texCoord", VBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex) + sizeof(Normal));
+
+	glGenVertexArrays(1, &planeVAO);
+	glGenBuffers(1, &planeVBO);
+
+	glBindVertexArray(planeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(VertexProperty), planeVertices, GL_STATIC_DRAW);
+
+	program.SetAttribBuffer("pos", planeVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
+	program.SetAttribBuffer("normal", planeVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	program.SetAttribBuffer("texCoord", planeVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex) + sizeof(Normal));
+
+	glBindVertexArray(0);
 }
 
 
@@ -398,9 +319,9 @@ void processInputs(GLFWwindow* window) {
 	if (numberInput[1]) { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
 	if (numberInput[2]) { glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); }
 
-	/*//camera.ProcessMouseScroll(scrollDelta);
+	/*camera.ProcessMouseScroll(scrollDelta);
 
-	//camera.ProcessMouseMovement(xoffset, yoffset);
+	camera.ProcessMouseMovement(xoffset, yoffset);
 	if (lmb && alt) {
 		plane_p += xoffset * sensitivity;
 		plane_y += yoffset * sensitivity;
@@ -426,18 +347,20 @@ void processInputs(GLFWwindow* window) {
 	// do stuff with the inputs here
 }
 
-void rotateObject(GameObject& gameObject) {
-	if (lmbPressed) {
-		gameObject.ApplyRotation(mouseDeltaY, -mouseDeltaX);
-		// move the camera lol
+void rotate(GameObject& gameObject) {
+	if (lmbPressed && ctrlPressed) {
+		lightPitch += mouseDeltaY * sensitivity;
+		lightYaw += -mouseDeltaX * sensitivity;
+	}
+	else if (lmbPressed) {
+		//gameObject.ApplyRotation(mouseDeltaX, 0, mouseDeltaY);
+		cameraPitch += mouseDeltaX * sensitivity;
+		cameraYaw -= mouseDeltaY * sensitivity;
 	}
 	else if (rmbPressed) {
-		gameObject.ApplyTranslation(cy::Vec3f(0,0, mouseDeltaY));
+		cameraDistance += mouseDeltaY * 0.1f;
+		//gameObject.ApplyTranslation(cy::Vec3f(0,0, mouseDeltaY));
 		//std::cout << "RMB pressed" << std::endl;
-	}
-
-	if (pPressed) {
-		center = !center;
 	}
 
 }
@@ -462,16 +385,39 @@ cy::GLSLProgram CreateObjectProgram() {
 
 
 
-	// Uniforms
-	int baseIndex = 0;
-	const char* transforms = "mvp mv model view projection mvNormal";
-	program.RegisterUniforms(transforms, baseIndex);
-	baseIndex += 6;
-
-
-
+	// Texture Units
+	program.Bind();
+	
+	// Teture Unit Bindings
+	program.SetUniform("diffuseTexture", 0);
+	program.SetUniform("specularTexture", 1);
+	program.SetUniform("ambientTexture", 2);
 
 
 	return program;
+}
 
+cy::GLSLProgram CreatePlaneProgram() {
+	cy::GLSLProgram program;
+	cy::GLSLShader vertexShader;
+	cy::GLSLShader fragmentShader;
+	const char* vertPath = "shaders\\planeVertexShader.vert";
+	const char* fragPath = "shaders\\planeFragmentShader.frag";
+	vertexShader.CompileFile(vertPath, GL_VERTEX_SHADER);
+	fragmentShader.CompileFile(fragPath, GL_FRAGMENT_SHADER);
+	if (program.Build(&vertexShader, &fragmentShader)) {
+		std::cout << "Program built successfully" << std::endl;
+		std::cout << "With vertex shader: " << vertPath << std::endl;
+		std::cout << "With fragment shader: " << fragPath << std::endl;
+	}
+	else {
+		std::cout << "Program failed to build" << std::endl;
+	}
+
+
+	// Texture Units
+	program.Bind();
+	program.SetUniform("renderTexture", 3);
+	std::cout << "Render texture location in second is" << glGetUniformLocation(program.GetID(), "renderTexture") << std::endl;
+	return program;
 }

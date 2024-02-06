@@ -32,15 +32,11 @@
     <None Include="shaders\helloFragmentShader.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="shaders\planeFragmentShader.frag" />
+    <None Include="shaders\planeVertexShader.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D:\Desktop\OpenGL\Include\gameobject.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D:\Desktop\OpenGL\Include\utilities.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\deltatime.h">
@@ -49,8 +45,17 @@
     <ClInclude Include="D:\Desktop\OpenGL\Include\inputs.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\gameobject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\windowProperties.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

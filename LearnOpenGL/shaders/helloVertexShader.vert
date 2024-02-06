@@ -12,15 +12,15 @@ uniform mat4 mvp;
 uniform mat3 mvN;
 
 
-//out vec3 viewPosition;
-//out vec3 viewNormal;
-//out vec2 uv;
+out vec3 viewPosition;
+out vec3 viewNormal;
+out vec2 uv;
 
 
 void main()
 {
     gl_Position = mvp * vec4(pos, 1.0);
-    //viewPosition = (mv * vec4(pos, 1.0)).xyz;
-    //viewNormal = normalize(mvNormal * normal);
-    //uv = texCoord;
+    viewPosition = (mv * vec4(pos, 1.0)).xyz;
+    viewNormal = normalize(mvN * normal);
+    uv = texCoord;
 }
