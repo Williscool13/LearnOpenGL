@@ -99,9 +99,8 @@ void main()
 
 
     //color = vec4(1,1,1,1);
-    vec3 renderTex = texture(specularTexture, uv).rgb;
-    color = vec4(renderTex,1);
-    color = vec4(1,1,1,1);
+    vec4 renderTex = texture(renderTexture, uv);
+    color = vec4(renderTex.rgb + vec3(0.1,0.1,0.1), 1);
 
 
     // Flat Color Debug

@@ -59,9 +59,9 @@ float cameraYaw = 0.0f;
 float cameraPitch = 0.0f;
 float cameraDistance = -30.0f;
 /// Plane Model Rotation and Translation
-//float plane_p = 45.0f;
-//float plane_y = 45.0f;
-//float plane_d = -20.0f;
+float planeYaw = 0.0f;
+float planePitch = 0.0f;
+float planeDistance = -30.0f;
 
 // Main Light
 float lightYaw = 0.0f;
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 
 	glEnable(GL_DEPTH_TEST);
 
-	glClearColor(0.5f, 0.5f, 0.8f, 1.0f);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 	char* objFilePath = argv[1];
 	std::cout << "Supplied obj file: " << objFilePath << std::endl;
@@ -149,6 +149,9 @@ int main(int argc, char* argv[])
 	ambientTexture = cy::GLTexture2D();
 	renderTexture = cy::GLRenderTexture2D();
 
+
+
+
 	glActiveTexture(GL_TEXTURE0);
 	diffuseTexture.Initialize();
 	glActiveTexture(GL_TEXTURE1);
@@ -156,9 +159,8 @@ int main(int argc, char* argv[])
 	glActiveTexture(GL_TEXTURE2);
 	ambientTexture.Initialize();
 	glActiveTexture(GL_TEXTURE3);
-	renderTexture.Initialize(true, 3, viewportWidth, viewportHeight);
-
-
+	bool respon = renderTexture.Initialize(true, 3, viewportWidth, viewportHeight);
+	std::cout << "Render texture initialized: " << respon << std::endl;
 
 	cy::GLSLProgram objectProgram = CreateObjectProgram();
 	cy::GLSLProgram planeProgram = CreatePlaneProgram();
@@ -171,7 +173,6 @@ int main(int argc, char* argv[])
 
 	while (!glfwWindowShouldClose(window))
 	{
-
 		// do stuff with inputs
 		processInputs(window);
 		rotate(mainObject);
@@ -180,12 +181,12 @@ int main(int argc, char* argv[])
 		calculateDeltaTime();
 
 		// draw our first triangle
-		//renderTexture.Bind();
+		renderTexture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		renderObject(objectProgram, mainObject, VAO);
-		//renderTexture.Unbind();
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//renderPlane(planeProgram, planeVAO);
+		renderTexture.Unbind();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		renderPlane(planeProgram, planeVAO);
 		
 
 
@@ -242,8 +243,11 @@ void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint
 		program.SetUniform("specularExponent", _m.Ns);
 
 		
+		diffuseTexture.Bind(0);
 		diffuseTexture.SetImage(gameobject.GetDiffuseTexture(i).texture.data(), 4, gameobject.GetDiffuseTexture(i).width, gameobject.GetDiffuseTexture(i).height);
+		specularTexture.Bind(1);
 		specularTexture.SetImage(gameobject.GetSpecularTexture(i).texture.data(), 4, gameobject.GetSpecularTexture(i).width, gameobject.GetSpecularTexture(i).height);
+		ambientTexture.Bind(2);
 		ambientTexture.SetImage(gameobject.GetAmbientTexture(i).texture.data(), 4, gameobject.GetAmbientTexture(i).width, gameobject.GetAmbientTexture(i).height);
 
 		glDrawArrays(GL_TRIANGLES, cummulativeVertexIndex, materialFaceCount);
@@ -257,11 +261,13 @@ void renderPlane(cy::GLSLProgram& program, const GLuint& vao) {
 	program.Bind();
 	glBindVertexArray(vao);
 
+
 	cy::Matrix4f model = cy::Matrix4f::Identity();
+	model = cy::Matrix4f::Scale(10.0f, 10.0f, 10.0f) * model;
 
 	cy::Matrix4f view = cy::Matrix4f::Identity();
-	view.SetRotationXYZ(degToRad(cameraYaw), degToRad(cameraPitch), 0.0f);
-	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, cameraDistance));
+	view.SetRotationXYZ(degToRad(planeYaw), degToRad(planePitch), 0.0f);
+	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, planeDistance));
 	
 	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 800.0f / 600.0f, 0.1f, 1000.0f);
 
@@ -275,6 +281,8 @@ void renderPlane(cy::GLSLProgram& program, const GLuint& vao) {
 	program.SetUniform("v", view);
 	program.SetUniform("p", projection);
 	program.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
+
+	program.SetUniform("renderTexture", 3);
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -352,15 +360,20 @@ void rotate(GameObject& gameObject) {
 		lightPitch += mouseDeltaY * sensitivity;
 		lightYaw += -mouseDeltaX * sensitivity;
 	}
+	else if (lmbPressed && altPressed) {
+		planePitch += mouseDeltaX * sensitivity;
+		planeYaw += mouseDeltaY * sensitivity;
+	}
 	else if (lmbPressed) {
-		//gameObject.ApplyRotation(mouseDeltaX, 0, mouseDeltaY);
 		cameraPitch += mouseDeltaX * sensitivity;
 		cameraYaw -= mouseDeltaY * sensitivity;
 	}
+	
+	if (rmbPressed && altPressed) {
+		planeDistance += mouseDeltaY * 0.1f;
+	}
 	else if (rmbPressed) {
 		cameraDistance += mouseDeltaY * 0.1f;
-		//gameObject.ApplyTranslation(cy::Vec3f(0,0, mouseDeltaY));
-		//std::cout << "RMB pressed" << std::endl;
 	}
 
 }
@@ -385,8 +398,6 @@ cy::GLSLProgram CreateObjectProgram() {
 
 
 
-	// Texture Units
-	program.Bind();
 	
 	// Teture Unit Bindings
 	program.SetUniform("diffuseTexture", 0);
@@ -398,14 +409,14 @@ cy::GLSLProgram CreateObjectProgram() {
 }
 
 cy::GLSLProgram CreatePlaneProgram() {
-	cy::GLSLProgram program;
+	cy::GLSLProgram _planeProgram;
 	cy::GLSLShader vertexShader;
 	cy::GLSLShader fragmentShader;
 	const char* vertPath = "shaders\\planeVertexShader.vert";
 	const char* fragPath = "shaders\\planeFragmentShader.frag";
 	vertexShader.CompileFile(vertPath, GL_VERTEX_SHADER);
 	fragmentShader.CompileFile(fragPath, GL_FRAGMENT_SHADER);
-	if (program.Build(&vertexShader, &fragmentShader)) {
+	if (_planeProgram.Build(&vertexShader, &fragmentShader)) {
 		std::cout << "Program built successfully" << std::endl;
 		std::cout << "With vertex shader: " << vertPath << std::endl;
 		std::cout << "With fragment shader: " << fragPath << std::endl;
@@ -416,8 +427,7 @@ cy::GLSLProgram CreatePlaneProgram() {
 
 
 	// Texture Units
-	program.Bind();
-	program.SetUniform("renderTexture", 3);
-	std::cout << "Render texture location in second is" << glGetUniformLocation(program.GetID(), "renderTexture") << std::endl;
-	return program;
+	_planeProgram.SetUniform("renderTexture", 3);
+	std::cout << "Render texture location in second is" << glGetUniformLocation(_planeProgram.GetID(), "renderTexture") << std::endl;
+	return _planeProgram;
 }
