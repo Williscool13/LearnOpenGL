@@ -4,13 +4,12 @@ layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoord;
 
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+uniform mat4 m;
+uniform mat4 v;
+uniform mat4 p;
 uniform mat4 mv;
 uniform mat4 mvp;
-
-uniform mat3 mvNormal;
+uniform mat3 mvN;
 
 
 out vec3 viewPosition;
@@ -22,6 +21,6 @@ void main()
 {
     gl_Position = mvp * vec4(pos, 1.0);
     viewPosition = (mv * vec4(pos, 1.0)).xyz;
-    viewNormal = normalize(mvNormal * normal);
+    viewNormal = normalize(mvN * normal);
     uv = texCoord;
 }
