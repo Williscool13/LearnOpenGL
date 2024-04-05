@@ -27,6 +27,8 @@
 #include <inputs.h>
 #include <deltatime.h>
 #include <windowProperties.h>
+#include <environment.h>
+#include <environmentCube.h>
 
 // png decoder
 #include "lodepng.h"
@@ -38,7 +40,7 @@ void processInputs(GLFWwindow* window);
 cy::GLSLProgram CreateObjectProgram();
 cy::GLSLProgram CreatePlaneProgram();
 void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject);
-void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao);
+void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao, cy::Matrix4f view, cy::Matrix4f proj);
 void renderPlane(cy::GLSLProgram& program, const GLuint& vao);
 void rotate(GameObject& gameObject);
 
@@ -87,12 +89,9 @@ VertexProperty* planeVertices = new VertexProperty[6]{
 };
 
 
-
-
-
-
 GLuint VBO, VAO;
 GLuint planeVBO, planeVAO;
+
 int main(int argc, char* argv[])
 {
 	#pragma region Initialization
@@ -106,7 +105,7 @@ int main(int argc, char* argv[])
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); 
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(viewportWidth, viewportHeight, "Look Mom, TRIANGLES!", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(viewportWidth, viewportHeight, "Window Name", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -149,21 +148,20 @@ int main(int argc, char* argv[])
 	ambientTexture = cy::GLTexture2D();
 	renderTexture = cy::GLRenderTexture2D();
 
-
-
-
-	glActiveTexture(GL_TEXTURE0);
 	diffuseTexture.Initialize();
-	glActiveTexture(GL_TEXTURE1);
 	specularTexture.Initialize();
-	glActiveTexture(GL_TEXTURE2);
 	ambientTexture.Initialize();
-	glActiveTexture(GL_TEXTURE3);
-	bool respon = renderTexture.Initialize(true, 3, viewportWidth, viewportHeight);
-	std::cout << "Render texture initialized: " << respon << std::endl;
+
+	renderTexture.Initialize(true, 3, viewportWidth, viewportHeight);
+	renderTexture.BindTexture(3);
+
+	//initializeEnvironmentMap(4);
+	//initializeCubeEnvironmentMap(4);
+	
+
 
 	cy::GLSLProgram objectProgram = CreateObjectProgram();
-	cy::GLSLProgram planeProgram = CreatePlaneProgram();
+	//cy::GLSLProgram planeProgram = CreatePlaneProgram();
 
 	GameObject mainObject = GameObject(objFilePath);
 	mainObject.setYaw(-90.0f);
@@ -180,17 +178,29 @@ int main(int argc, char* argv[])
 
 		calculateDeltaTime();
 
-		// draw our first triangle
-		renderTexture.Bind();
+		// If doing Render To Texture
+		/*renderTexture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		renderObject(objectProgram, mainObject, VAO);
 		renderTexture.Unbind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		renderPlane(planeProgram, planeVAO);
-		
+		renderPlane(planeProgram, planeVAO);*/
 
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//std::cout << "Object's position is " << mainObject.Position.x << ", " << mainObject.Position.y << ", " << mainObject.Position.z << std::endl;
+		// calculate view and projection matrices
+		cy::Matrix4f view = cy::Matrix4f::Identity();
+		view.SetRotationXYZ(degToRad(cameraYaw), degToRad(cameraPitch), 0.0f);
+		view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, cameraDistance));
+		cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 800.0f / 600.0f, 0.1f, 1000.0f);
+
+		// render background
+
+		renderObject(objectProgram, mainObject, VAO, view, projection);
+
+		//renderEnvironmentMap(view, projection);
+		//renderCubeEnvironmentMap(view, projection);
+
 		
 
 		glfwSwapBuffers(window);
@@ -201,20 +211,12 @@ int main(int argc, char* argv[])
 	glfwTerminate();
 	return 0;
 }
-void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao) {
+void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao, cy::Matrix4f view, cy::Matrix4f proj) {
 	program.Bind();
 	glBindVertexArray(vao);
 
-	// set transforms (as it is the same for all materials under the same object)
-	cy::Matrix4<float> model = gameobject.GetModelMatrix(true);
-
-	cy::Matrix4f view = cy::Matrix4f::Identity();
-	view.SetRotationXYZ(degToRad(cameraYaw), degToRad(cameraPitch), 0.0f);
-	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, cameraDistance));
-
-	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 800.0f / 600.0f, 0.1f, 1000.0f);
-	
-	cy::Matrix4f mvp = projection * view * model;
+	cy::Matrix4f model = gameobject.GetModelMatrix(true);
+	cy::Matrix4f mvp = proj * view * model;
 	cy::Matrix4f mv = view * model;
 
 	program.SetUniform("time", (float)glfwGetTime());
@@ -222,7 +224,7 @@ void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint
 	program.SetUniform("mv", mv);
 	program.SetUniform("m", model);
 	program.SetUniform("v", view);
-	program.SetUniform("p", projection);
+	program.SetUniform("p", proj);
 	program.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
 
 	cy::Vec3f _lightDirection = lightDirection(lightYaw, lightPitch);
@@ -269,7 +271,8 @@ void renderPlane(cy::GLSLProgram& program, const GLuint& vao) {
 	view.SetRotationXYZ(degToRad(planeYaw), degToRad(planePitch), 0.0f);
 	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, planeDistance));
 	
-	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 800.0f / 600.0f, 0.1f, 1000.0f);
+	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 
+		800.0f / 600.0f, 0.1f, 1000.0f);
 
 	cy::Matrix4f mvp = projection * view * model;
 	cy::Matrix4f mv = view * model;
@@ -282,7 +285,6 @@ void renderPlane(cy::GLSLProgram& program, const GLuint& vao) {
 	program.SetUniform("p", projection);
 	program.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
 
-	program.SetUniform("renderTexture", 3);
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -380,29 +382,15 @@ void rotate(GameObject& gameObject) {
 
 
 cy::GLSLProgram CreateObjectProgram() {
+
 	cy::GLSLProgram program;
-	cy::GLSLShader vertexShader;
-	cy::GLSLShader fragmentShader;
-	const char* vertPath = "shaders\\helloVertexShader.vert";
-	const char* fragPath = "shaders\\helloFragmentShader.frag";
-	vertexShader.CompileFile(vertPath, GL_VERTEX_SHADER);
-	fragmentShader.CompileFile(fragPath, GL_FRAGMENT_SHADER);
-	if (program.Build(&vertexShader, &fragmentShader)) {
-		std::cout << "Program built successfully" << std::endl;
-		std::cout << "With vertex shader: " << vertPath << std::endl;
-		std::cout << "With fragment shader: " << fragPath << std::endl;
-	}
-	else {
-		std::cout << "Program failed to build" << std::endl;
-	}
-
-
-
+	program.BuildFiles("shaders\\helloVertexShader.vert", "shaders\\helloFragmentShader.frag");
 	
 	// Teture Unit Bindings
 	program.SetUniform("diffuseTexture", 0);
 	program.SetUniform("specularTexture", 1);
 	program.SetUniform("ambientTexture", 2);
+	program.SetUniform("renderTexture", 3);
 
 
 	return program;
@@ -410,24 +398,10 @@ cy::GLSLProgram CreateObjectProgram() {
 
 cy::GLSLProgram CreatePlaneProgram() {
 	cy::GLSLProgram _planeProgram;
-	cy::GLSLShader vertexShader;
-	cy::GLSLShader fragmentShader;
-	const char* vertPath = "shaders\\planeVertexShader.vert";
-	const char* fragPath = "shaders\\planeFragmentShader.frag";
-	vertexShader.CompileFile(vertPath, GL_VERTEX_SHADER);
-	fragmentShader.CompileFile(fragPath, GL_FRAGMENT_SHADER);
-	if (_planeProgram.Build(&vertexShader, &fragmentShader)) {
-		std::cout << "Program built successfully" << std::endl;
-		std::cout << "With vertex shader: " << vertPath << std::endl;
-		std::cout << "With fragment shader: " << fragPath << std::endl;
-	}
-	else {
-		std::cout << "Program failed to build" << std::endl;
-	}
-
+	_planeProgram.BuildFiles("shaders\\planeVertexShader.vert", "shaders\\planeFragmentShader.frag");
 
 	// Texture Units
 	_planeProgram.SetUniform("renderTexture", 3);
-	std::cout << "Render texture location in second is" << glGetUniformLocation(_planeProgram.GetID(), "renderTexture") << std::endl;
+
 	return _planeProgram;
 }

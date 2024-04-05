@@ -34,6 +34,10 @@
     </None>
     <None Include="shaders\planeFragmentShader.frag" />
     <None Include="shaders\planeVertexShader.vert" />
+    <None Include="shaders\environmentFragment.frag" />
+    <None Include="shaders\environmentVertex.vert" />
+    <None Include="shaders\cubeEnvironment.frag" />
+    <None Include="shaders\cubeEnvironment.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
@@ -55,6 +59,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\windowProperties.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\environment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\environmentCube.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -137,6 +137,10 @@
     <ClCompile Include="src\lodepng.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\cubeEnvironment.frag" />
+    <None Include="shaders\cubeEnvironment.vert" />
+    <None Include="shaders\environmentFragment.frag" />
+    <None Include="shaders\environmentVertex.vert" />
     <None Include="shaders\helloFragmentShader.frag" />
     <None Include="shaders\helloVertexShader.vert" />
     <None Include="shaders\planeFragmentShader.frag" />
@@ -145,6 +149,8 @@
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\deltatime.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\environment.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\environmentCube.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\gameobject.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\inputs.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h" />

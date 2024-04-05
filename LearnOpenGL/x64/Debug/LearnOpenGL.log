@@ -1,8 +1,8 @@
 ﻿  HelloWindow.cpp
-D:\Desktop\OpenGL\Include\gameobject.h(38,47): warning C4267: 'return': conversion from 'size_t' to 'int', possible loss of data
+D:\Desktop\OpenGL\Include\gameobject.h(39,47): warning C4267: 'return': conversion from 'size_t' to 'int', possible loss of data
   (compiling source file 'src/HelloWindow.cpp')
   
-D:\Desktop\OpenGL\Include\gameobject.h(185,21): warning C4018: '<': signed/unsigned mismatch
+D:\Desktop\OpenGL\Include\gameobject.h(215,21): warning C4018: '<': signed/unsigned mismatch
   (compiling source file 'src/HelloWindow.cpp')
   
 D:\Desktop\OpenGL\Include\inputs.h(85,18): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
@@ -23,10 +23,58 @@ D:\Desktop\OpenGL\Include\deltatime.h(15,26): warning C4244: '=': conversion fro
 D:\Desktop\OpenGL\Include\deltatime.h(18,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   (compiling source file 'src/HelloWindow.cpp')
   
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(109,55): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(109,40): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(127,34): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(127,19): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(162,65): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(162,50): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+D:\Desktop\OpenGL\Include\environment.h(21,10): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+D:\Desktop\OpenGL\Include\environment.h(21,10): warning C4305:         with
+D:\Desktop\OpenGL\Include\environment.h(21,10): warning C4305:         [
+D:\Desktop\OpenGL\Include\environment.h(21,10): warning C4305:             _Ty=float
+D:\Desktop\OpenGL\Include\environment.h(21,10): warning C4305:         ]
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\environment.h(22,9): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+D:\Desktop\OpenGL\Include\environment.h(22,9): warning C4305:         with
+D:\Desktop\OpenGL\Include\environment.h(22,9): warning C4305:         [
+D:\Desktop\OpenGL\Include\environment.h(22,9): warning C4305:             _Ty=float
+D:\Desktop\OpenGL\Include\environment.h(22,9): warning C4305:         ]
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\environment.h(23,9): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+D:\Desktop\OpenGL\Include\environment.h(23,9): warning C4305:         with
+D:\Desktop\OpenGL\Include\environment.h(23,9): warning C4305:         [
+D:\Desktop\OpenGL\Include\environment.h(23,9): warning C4305:             _Ty=float
+D:\Desktop\OpenGL\Include\environment.h(23,9): warning C4305:         ]
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\environment.h(24,9): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+D:\Desktop\OpenGL\Include\environment.h(24,9): warning C4305:         with
+D:\Desktop\OpenGL\Include\environment.h(24,9): warning C4305:         [
+D:\Desktop\OpenGL\Include\environment.h(24,9): warning C4305:             _Ty=float
+D:\Desktop\OpenGL\Include\environment.h(24,9): warning C4305:         ]
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\environment.h(25,9): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+D:\Desktop\OpenGL\Include\environment.h(25,9): warning C4305:         with
+D:\Desktop\OpenGL\Include\environment.h(25,9): warning C4305:         [
+D:\Desktop\OpenGL\Include\environment.h(25,9): warning C4305:             _Ty=float
+D:\Desktop\OpenGL\Include\environment.h(25,9): warning C4305:         ]
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\environment.h(26,8): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+D:\Desktop\OpenGL\Include\environment.h(26,8): warning C4305:         with
+D:\Desktop\OpenGL\Include\environment.h(26,8): warning C4305:         [
+D:\Desktop\OpenGL\Include\environment.h(26,8): warning C4305:             _Ty=float
+D:\Desktop\OpenGL\Include\environment.h(26,8): warning C4305:         ]
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\environmentCube.h(49,20): warning C4018: '<': signed/unsigned mismatch
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\environmentCube.h(58,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+  (compiling source file 'src/HelloWindow.cpp')
+  
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(108,55): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(108,40): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(126,34): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(126,19): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(155,51): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(155,36): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
   LearnOpenGL.vcxproj -> C:\Users\twtw4\source\repos\LearnOpenGL\x64\Debug\LearnOpenGL.exe
