@@ -36,7 +36,7 @@
 
 
 
-void processInputs(GLFWwindow* window);
+void processInputs(GLFWwindow* window, OrbitCamera& camera);
 cy::GLSLProgram CreateObjectProgram();
 cy::GLSLProgram CreatePlaneProgram();
 void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject);
@@ -56,11 +56,6 @@ bool freeCam = false;
 // Perspective/Otho
 bool ortho = false;
 
-/// Main Object Rotation and Translation
-float cameraYaw = 0.0f;
-float cameraPitch = 0.0f;
-float cameraDistance = -30.0f;
-/// Plane Model Rotation and Translation
 float planeYaw = 0.0f;
 float planePitch = 0.0f;
 float planeDistance = -30.0f;
@@ -142,6 +137,7 @@ int main(int argc, char* argv[])
 	char* objFilePath = argv[1];
 	std::cout << "Supplied obj file: " << objFilePath << std::endl;
 
+	OrbitCamera camera = OrbitCamera();
 
 	diffuseTexture = cy::GLTexture2D();
 	specularTexture = cy::GLTexture2D();
@@ -156,7 +152,7 @@ int main(int argc, char* argv[])
 	renderTexture.BindTexture(3);
 
 	//initializeEnvironmentMap(4);
-	//initializeCubeEnvironmentMap(4);
+	initializeCubeEnvironmentMap(5);
 	
 
 
@@ -172,8 +168,8 @@ int main(int argc, char* argv[])
 	while (!glfwWindowShouldClose(window))
 	{
 		// do stuff with inputs
-		processInputs(window);
-		rotate(mainObject);
+		processInputs(window, camera);
+		//rotate(mainObject);
 		resetDeltas();
 
 		calculateDeltaTime();
@@ -188,18 +184,12 @@ int main(int argc, char* argv[])
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// calculate view and projection matrices
-		cy::Matrix4f view = cy::Matrix4f::Identity();
-		view.SetRotationXYZ(degToRad(cameraYaw), degToRad(cameraPitch), 0.0f);
-		view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, cameraDistance));
-		cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 800.0f / 600.0f, 0.1f, 1000.0f);
+		renderCubeEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetCameraPosition());
+
+		renderObject(objectProgram, mainObject, VAO, camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
 		// render background
-
-		renderObject(objectProgram, mainObject, VAO, view, projection);
-
-		//renderEnvironmentMap(view, projection);
-		//renderCubeEnvironmentMap(view, projection);
+		//renderEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
 		
 
@@ -317,7 +307,7 @@ void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject) {
 }
 
 
-void processInputs(GLFWwindow* window) {
+void processInputs(GLFWwindow* window, OrbitCamera& camera) {
 	//if (wasdInput[0]) { camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime); }
 	//if (wasdInput[1]) { camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime); }
 	//if (wasdInput[2]) { camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime); }
@@ -328,6 +318,10 @@ void processInputs(GLFWwindow* window) {
 	if (numberInput[0]) { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
 	if (numberInput[1]) { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
 	if (numberInput[2]) { glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); }
+
+	
+	if (lmbPressed) { camera.Rotate(mouseDeltaX, -mouseDeltaY); } 
+	else if (rmbPressed) { camera.Move(mouseDeltaY); }
 
 	/*camera.ProcessMouseScroll(scrollDelta);
 
@@ -357,28 +351,6 @@ void processInputs(GLFWwindow* window) {
 	// do stuff with the inputs here
 }
 
-void rotate(GameObject& gameObject) {
-	if (lmbPressed && ctrlPressed) {
-		lightPitch += mouseDeltaY * sensitivity;
-		lightYaw += -mouseDeltaX * sensitivity;
-	}
-	else if (lmbPressed && altPressed) {
-		planePitch += mouseDeltaX * sensitivity;
-		planeYaw += mouseDeltaY * sensitivity;
-	}
-	else if (lmbPressed) {
-		cameraPitch += mouseDeltaX * sensitivity;
-		cameraYaw -= mouseDeltaY * sensitivity;
-	}
-	
-	if (rmbPressed && altPressed) {
-		planeDistance += mouseDeltaY * 0.1f;
-	}
-	else if (rmbPressed) {
-		cameraDistance += mouseDeltaY * 0.1f;
-	}
-
-}
 
 
 cy::GLSLProgram CreateObjectProgram() {
