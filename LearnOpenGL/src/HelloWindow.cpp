@@ -29,6 +29,7 @@
 #include <windowProperties.h>
 #include <environment.h>
 #include <environmentCube.h>
+#include <lights.h>
 
 // png decoder
 #include "lodepng.h"
@@ -36,13 +37,15 @@
 
 
 
-void processInputs(GLFWwindow* window, OrbitCamera& camera);
+void processInputs(GLFWwindow* window, OrbitCamera& camera, DirectionalLight& light);
 cy::GLSLProgram CreateObjectProgram();
 cy::GLSLProgram CreatePlaneProgram();
 void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject);
+void setupSphereObject();
+void renderSphereObject(cy::Matrix4f view, cy::Matrix4f project);
+void recompileShaders();
 void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao, cy::Matrix4f view, cy::Matrix4f proj);
 void renderPlane(cy::GLSLProgram& program, const GLuint& vao);
-void rotate(GameObject& gameObject);
 
 
 int renderTextureChannels = 3;
@@ -61,8 +64,7 @@ float planePitch = 0.0f;
 float planeDistance = -30.0f;
 
 // Main Light
-float lightYaw = 0.0f;
-float lightPitch = 0.0f;
+DirectionalLight mainLight = DirectionalLight();
 
 cy::GLTexture2D diffuseTexture;
 cy::GLTexture2D specularTexture;
@@ -153,7 +155,7 @@ int main(int argc, char* argv[])
 
 	//initializeEnvironmentMap(4);
 	initializeCubeEnvironmentMap(5);
-	
+	setupSphereObject();
 
 
 	cy::GLSLProgram objectProgram = CreateObjectProgram();
@@ -168,7 +170,7 @@ int main(int argc, char* argv[])
 	while (!glfwWindowShouldClose(window))
 	{
 		// do stuff with inputs
-		processInputs(window, camera);
+		processInputs(window, camera, mainLight);
 		//rotate(mainObject);
 		resetDeltas();
 
@@ -186,7 +188,8 @@ int main(int argc, char* argv[])
 
 		renderCubeEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetCameraPosition());
 
-		renderObject(objectProgram, mainObject, VAO, camera.GetViewMatrix(), camera.GetProjectionMatrix());
+		//renderObject(objectProgram, mainObject, VAO, camera.GetViewMatrix(), camera.GetProjectionMatrix());
+		renderSphereObject(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
 		// render background
 		//renderEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix());
@@ -217,7 +220,7 @@ void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint
 	program.SetUniform("p", proj);
 	program.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
 
-	cy::Vec3f _lightDirection = lightDirection(lightYaw, lightPitch);
+	cy::Vec3f _lightDirection = mainLight.GetLightDirection();
 	program.SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
 	program.SetUniform("ambientIlluminance", 0.2f);
 	program.SetUniform("mainLightIlluminance", 1.0f);
@@ -307,7 +310,112 @@ void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject) {
 }
 
 
-void processInputs(GLFWwindow* window, OrbitCamera& camera) {
+GLuint sphereVAO, sphereVBO;
+std::vector<VertexProperty> sphereVertices{};
+cy::GLSLProgram sphereProgram;
+
+void setupSphereObject() {
+	cy::TriMesh sphereMesh;
+	sphereMesh.LoadFromFileObj("models\\sphere.obj");
+	for (int i = 0; i < sphereMesh.NF(); i++) {
+		cy::TriMesh::TriFace f = sphereMesh.F(i);
+		for (int j = 0; j < 3; j++) {
+			cy::Vec3f vertex = sphereMesh.V(f.v[j]);
+			cy::Vec3f normal = sphereMesh.VN(f.v[j]);
+			cy::Vec3f texCoord = sphereMesh.VT(f.v[j]);
+
+			sphereVertices.push_back(VertexProperty{ 
+				Vertex{vertex.x, vertex.y, vertex.z}, 
+				Normal{normal.x, normal.y, normal.z}, 
+				Texture{texCoord.x, texCoord.y} }
+			);
+
+		}
+	}
+
+	glGenVertexArrays(1, &sphereVAO);
+	glGenBuffers(1, &sphereVBO);
+	glBindVertexArray(sphereVAO);
+
+	sphereProgram.BuildFiles("shaders\\reflections\\reflect.vert", "shaders\\reflections\\reflect.frag");
+	sphereProgram.SetUniform("environmentTexture", 5);
+
+	glBindBuffer(GL_ARRAY_BUFFER, sphereVBO);
+	glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(VertexProperty), sphereVertices.data(), GL_STATIC_DRAW);
+	sphereProgram.SetAttribBuffer("pos", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
+	sphereProgram.SetAttribBuffer("normal", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	sphereProgram.SetAttribBuffer("texCoord", sphereVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 
+		sizeof(Vertex) + sizeof(Normal));
+
+	std::cout << "Sphere Finished Initialization" << std::endl;
+}
+
+void renderSphereObject(cy::Matrix4f view, cy::Matrix4f project) {
+	sphereProgram.Bind();
+	glBindVertexArray(sphereVAO);
+	sphereProgram.SetUniform("model", cy::Matrix4f::Identity());
+	sphereProgram.SetUniform("view", view);
+	sphereProgram.SetUniform("proj", project);
+	cy::Matrix4f mv = view * cy::Matrix4f::Identity();
+	sphereProgram.SetUniform("mv", mv);
+	sphereProgram.SetUniform("mvp", project * view * cy::Matrix4f::Identity());
+	sphereProgram.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
+	
+	sphereProgram.SetUniform("i_model", cy::Matrix4f::Identity().GetInverse());
+	sphereProgram.SetUniform("i_view", view.GetInverse());
+	sphereProgram.SetUniform("i_proj", project.GetInverse());
+
+	cy::Vec3f _lightDirection = mainLight.GetLightDirection();
+	sphereProgram.SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
+	sphereProgram.SetUniform("specularExponent", 32.0f);
+
+
+	glDrawArrays(GL_TRIANGLES, 0, sphereVertices.size());
+
+	glBindVertexArray(0);
+}
+
+void recompileShaders() {
+	sphereProgram.BuildFiles("shaders\\reflections\\reflect.vert", "shaders\\reflections\\reflect.frag");
+	sphereProgram.SetUniform("environmentTexture", 5);
+
+	sphereProgram.SetAttribBuffer("pos", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
+	sphereProgram.SetAttribBuffer("normal", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	sphereProgram.SetAttribBuffer("texCoord", sphereVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty),
+		sizeof(Vertex) + sizeof(Normal));
+
+
+	std::cout << "Recompiled Shaders" << std::endl;
+}
+
+cy::GLSLProgram CreateObjectProgram() {
+
+	cy::GLSLProgram program;
+	program.BuildFiles("shaders\\helloVertexShader.vert", "shaders\\helloFragmentShader.frag");
+	
+	// Teture Unit Bindings
+	program.SetUniform("diffuseTexture", 0);
+	program.SetUniform("specularTexture", 1);
+	program.SetUniform("ambientTexture", 2);
+	program.SetUniform("renderTexture", 3);
+
+
+	return program;
+}
+
+cy::GLSLProgram CreatePlaneProgram() {
+	cy::GLSLProgram _planeProgram;
+	_planeProgram.BuildFiles("shaders\\planeVertexShader.vert", "shaders\\planeFragmentShader.frag");
+
+	// Texture Units
+	_planeProgram.SetUniform("renderTexture", 3);
+
+	return _planeProgram;
+}
+
+
+
+void processInputs(GLFWwindow* window, OrbitCamera& camera, DirectionalLight& light) {
 	//if (wasdInput[0]) { camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime); }
 	//if (wasdInput[1]) { camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime); }
 	//if (wasdInput[2]) { camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime); }
@@ -319,10 +427,24 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera) {
 	if (numberInput[1]) { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
 	if (numberInput[2]) { glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); }
 
-	
-	if (lmbPressed) { camera.Rotate(mouseDeltaX, -mouseDeltaY); } 
-	else if (rmbPressed) { camera.Move(mouseDeltaY); }
+	if (oPressed) {
+		recompileShaders();
+	}
 
+	if (ctrlPressed) {
+		if (lmbPressed) { 
+			light.SetYaw(light.GetYaw() - mouseDeltaX * 0.1f);
+			light.SetPitch(light.GetPitch() + mouseDeltaY * 0.1f);
+		}
+	}
+	else {
+		if (lmbPressed) { camera.Rotate(mouseDeltaX, -mouseDeltaY); }
+		else if (rmbPressed) { camera.Move(mouseDeltaY); }
+	}
+	
+
+	if (wasdInput[2]) { camera.SetFOV(camera.GetFOV() + degToRad(1.0f)); }
+	if (wasdInput[0]) { camera.SetFOV(camera.GetFOV() - degToRad(1.0f)); }
 	/*camera.ProcessMouseScroll(scrollDelta);
 
 	camera.ProcessMouseMovement(xoffset, yoffset);
@@ -349,31 +471,4 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera) {
 	else { camera.MovementSpeed = 2.5f; }*/
 
 	// do stuff with the inputs here
-}
-
-
-
-cy::GLSLProgram CreateObjectProgram() {
-
-	cy::GLSLProgram program;
-	program.BuildFiles("shaders\\helloVertexShader.vert", "shaders\\helloFragmentShader.frag");
-	
-	// Teture Unit Bindings
-	program.SetUniform("diffuseTexture", 0);
-	program.SetUniform("specularTexture", 1);
-	program.SetUniform("ambientTexture", 2);
-	program.SetUniform("renderTexture", 3);
-
-
-	return program;
-}
-
-cy::GLSLProgram CreatePlaneProgram() {
-	cy::GLSLProgram _planeProgram;
-	_planeProgram.BuildFiles("shaders\\planeVertexShader.vert", "shaders\\planeFragmentShader.frag");
-
-	// Texture Units
-	_planeProgram.SetUniform("renderTexture", 3);
-
-	return _planeProgram;
 }

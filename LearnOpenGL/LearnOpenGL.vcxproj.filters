@@ -38,6 +38,8 @@
     <None Include="shaders\environmentVertex.vert" />
     <None Include="shaders\cubeEnvironment.frag" />
     <None Include="shaders\cubeEnvironment.vert" />
+    <None Include="shaders\Reflections\reflect.frag" />
+    <None Include="shaders\Reflections\reflect.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
@@ -65,6 +67,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\environmentCube.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\lights.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

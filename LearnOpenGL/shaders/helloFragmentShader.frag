@@ -38,6 +38,7 @@ void main()
     vec3 lightDir = normalize(mainLightDirectionView);
     vec3 halfDir = normalize(lightDir + viewDir);
 
+    vec3 viewReflect = reflect(viewDir, viewNormal);
 
     // Blinn-Phong
     float nDotL = max(dot(viewNormal, lightDir), 0.0f);
