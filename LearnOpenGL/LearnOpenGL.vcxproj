@@ -147,6 +147,8 @@
     <None Include="shaders\planeVertexShader.vert" />
     <None Include="shaders\Reflections\reflect.frag" />
     <None Include="shaders\Reflections\reflect.vert" />
+    <None Include="shaders\reflections\reflectPlane.frag" />
+    <None Include="shaders\reflections\reflectPlane.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h" />
@@ -156,7 +158,9 @@
     <ClInclude Include="D:\Desktop\OpenGL\Include\gameobject.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\inputs.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\lights.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\reflection.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h" />
+    <ClInclude Include="D:\Desktop\OpenGL\Include\transforms.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\utilities.h" />
     <ClInclude Include="D:\Desktop\OpenGL\Include\windowProperties.h" />
   </ItemGroup>

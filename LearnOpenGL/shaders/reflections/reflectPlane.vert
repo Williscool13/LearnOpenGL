@@ -30,5 +30,4 @@ void main()
 	vTexCoord = texCoord;
 
 	dirTexCoord = (i_view * vec4(reflect(vPos, vNormal), 0.0)).xyz;
-
 }

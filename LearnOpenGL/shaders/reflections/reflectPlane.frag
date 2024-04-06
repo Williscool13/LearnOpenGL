@@ -24,5 +24,11 @@ void main()
     float spec = pow(nDotH, specularExponent);
 
 	vec3 finalSpecular = spec * vec3(1.0, 1.0, 1.0);
-	color = texture(environmentTexture, dirTexCoord) + vec4(finalSpecular, 1.0);
+	vec4 reflectColor = texture(environmentTexture, dirTexCoord);
+	
+	vec2 screenUV = gl_FragCoord.xy / vec2(800, 600);
+	vec4 renTexColor = texture(renderTexture, screenUV);
+
+	color = vec4(mix(reflectColor.xyz * 0.9f, renTexColor.xyz * 0.8f, renTexColor.w) 
+		+ finalSpecular, 1);
 }

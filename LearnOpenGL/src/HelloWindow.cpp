@@ -30,6 +30,9 @@
 #include <environment.h>
 #include <environmentCube.h>
 #include <lights.h>
+#include <transforms.h>
+#include <reflection.h>
+
 
 // png decoder
 #include "lodepng.h"
@@ -41,30 +44,65 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera, DirectionalLight& li
 cy::GLSLProgram CreateObjectProgram();
 cy::GLSLProgram CreatePlaneProgram();
 void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject);
-void setupSphereObject();
-void renderSphereObject(cy::Matrix4f view, cy::Matrix4f project);
+
+void setupReflectiveObject(const char* path);
+void renderReflectiveObject(cy::Matrix4f view, cy::Matrix4f project);
+void recompileReflectiveObject();
+
+void setupReflectivePlane();
+void renderReflectivePlane(cy::Matrix4f view, cy::Matrix4f project);
+void recompileReflectivePlane();
+
 void recompileShaders();
 void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao, cy::Matrix4f view, cy::Matrix4f proj);
 void renderPlane(cy::GLSLProgram& program, const GLuint& vao);
 
 
-int renderTextureChannels = 3;
-GLsizei renderTextureWidth = 800;
-GLsizei renderTextureHeight = 600;
 
 
 // Camera
-/// Camera Style
-bool freeCam = false;
-// Perspective/Otho
-bool ortho = false;
-
 float planeYaw = 0.0f;
 float planePitch = 0.0f;
 float planeDistance = -30.0f;
 
 // Main Light
 DirectionalLight mainLight = DirectionalLight();
+
+// Objects
+GLuint VBO, VAO;
+// Plane
+GLuint planeVBO, planeVAO;
+std::vector<VertexProperty> planeVertices{
+	{Vertex{-1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}},
+	{Vertex{1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 0.0f}},
+	{Vertex{1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
+	{Vertex{1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
+	{Vertex{-1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 1.0f}},
+	{Vertex{-1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}}
+};
+
+// Reflective Object
+bool reflectiveObjectActive = false;
+GLuint reflectiveObjectVAO, reflectiveObjectVBO;
+cy::GLSLProgram reflectiveObjectProgram;
+cy::Matrix4f reflectiveObjectModel = cy::Matrix4f::Identity();
+int reflectiveObjectVertexCount;
+
+
+// Reflective Plane
+bool reflectivePlaneActive = false;
+GLuint reflectivePlaneVAO, reflectivePlaneVBO;
+cy::GLSLProgram reflectivePlaneProgram;
+cy::Matrix4f reflectivePlaneModel = cy::Matrix4f::Identity();
+std::vector<VertexProperty> reflectivePlaneVertices{
+	{Vertex{-50.0f, -50.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}},
+	{Vertex{50.0f, -50.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 0.0f}},
+	{Vertex{50.0f, 50.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
+	{Vertex{50.0f, 50.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
+	{Vertex{-50.0f, 50.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 1.0f}},
+	{Vertex{-50.0f, -50.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}}
+};
+
 
 cy::GLTexture2D diffuseTexture;
 cy::GLTexture2D specularTexture;
@@ -76,18 +114,8 @@ cy::GLRenderTexture2D renderTexture;
 
 
 
-VertexProperty* planeVertices = new VertexProperty[6]{
-	{Vertex{-1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}},
-	{Vertex{1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 0.0f}},
-	{Vertex{1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
-	{Vertex{1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{1.0f, 1.0f}},
-	{Vertex{-1.0f, 1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 1.0f}},
-	{Vertex{-1.0f, -1.0f, 0.0f}, Normal{0.0f, 0.0f, 1.0f}, Texture{0.0f, 0.0f}}
-};
 
 
-GLuint VBO, VAO;
-GLuint planeVBO, planeVAO;
 
 int main(int argc, char* argv[])
 {
@@ -98,11 +126,11 @@ int main(int argc, char* argv[])
 	}
 
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); 
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(viewportWidth, viewportHeight, "Window Name", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(viewportWidth, viewportHeight, "Williscool.", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -150,20 +178,21 @@ int main(int argc, char* argv[])
 	specularTexture.Initialize();
 	ambientTexture.Initialize();
 
-	renderTexture.Initialize(true, 3, viewportWidth, viewportHeight);
+	renderTexture.Initialize(true, renderTextureChannels, viewportWidth, viewportHeight);
 	renderTexture.BindTexture(3);
 
 	//initializeEnvironmentMap(4);
 	initializeCubeEnvironmentMap(5);
-	setupSphereObject();
+	setupReflectiveObject(objFilePath);
+	setupReflectivePlane();
 
 
-	cy::GLSLProgram objectProgram = CreateObjectProgram();
+	//cy::GLSLProgram objectProgram = CreateObjectProgram();
 	//cy::GLSLProgram planeProgram = CreatePlaneProgram();
 
-	GameObject mainObject = GameObject(objFilePath);
-	mainObject.setYaw(-90.0f);
-	setupBuffers(objectProgram, mainObject);
+	//GameObject mainObject = GameObject(objFilePath);
+	//mainObject.setYaw(-90.0f);
+	//setupBuffers(objectProgram, mainObject);
 
 	// simple texture to send to the shader
 
@@ -171,30 +200,36 @@ int main(int argc, char* argv[])
 	{
 		// do stuff with inputs
 		processInputs(window, camera, mainLight);
-		//rotate(mainObject);
-		resetDeltas();
 
 		calculateDeltaTime();
 
-		// If doing Render To Texture
-		/*renderTexture.Bind();
+		// Render to Texture
+		renderTexture.Bind();
+		glClearColor(0, 0, 0, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		renderObject(objectProgram, mainObject, VAO);
+
+		cy::Matrix4f reflectionMatrix = generateReflectionMatrix(
+			reflectivePlaneVertices[0].vertex.GetVec3(), // random vertex (dot w/ normal is the same for all vertices)
+			reflectivePlaneVertices[0].normal.GetVec3(), // random normal (plane has same normal at all points)
+			reflectivePlaneModel // plane model matrix (model -> world)
+		);
+
+		renderReflectiveObject(camera.GetViewMatrix() * reflectionMatrix.GetTranspose(), camera.GetProjectionMatrix());
 		renderTexture.Unbind();
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		renderPlane(planeProgram, planeVAO);*/
-
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		// cube has to be done before objects to avoid z-fighting
 		renderCubeEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetCameraPosition());
 
 		//renderObject(objectProgram, mainObject, VAO, camera.GetViewMatrix(), camera.GetProjectionMatrix());
-		renderSphereObject(camera.GetViewMatrix(), camera.GetProjectionMatrix());
+		renderReflectiveObject(camera.GetViewMatrix(), camera.GetProjectionMatrix());
+		renderReflectivePlane(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
 		// render background
 		//renderEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
-		
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -204,6 +239,7 @@ int main(int argc, char* argv[])
 	glfwTerminate();
 	return 0;
 }
+
 void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint& vao, cy::Matrix4f view, cy::Matrix4f proj) {
 	program.Bind();
 	glBindVertexArray(vao);
@@ -237,7 +273,7 @@ void renderObject(cy::GLSLProgram& program, GameObject& gameobject, const GLuint
 		program.SetUniform("Ks", cy::Vec3f(_m.Ks[0], _m.Ks[1], _m.Ks[2]));
 		program.SetUniform("specularExponent", _m.Ns);
 
-		
+
 		diffuseTexture.Bind(0);
 		diffuseTexture.SetImage(gameobject.GetDiffuseTexture(i).texture.data(), 4, gameobject.GetDiffuseTexture(i).width, gameobject.GetDiffuseTexture(i).height);
 		specularTexture.Bind(1);
@@ -263,8 +299,8 @@ void renderPlane(cy::GLSLProgram& program, const GLuint& vao) {
 	cy::Matrix4f view = cy::Matrix4f::Identity();
 	view.SetRotationXYZ(degToRad(planeYaw), degToRad(planePitch), 0.0f);
 	view.AddTranslation(cy::Vec3<float>(0.0f, 0.0f, planeDistance));
-	
-	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45), 
+
+	cy::Matrix4f projection = cy::Matrix4f::Perspective(degToRad(45),
 		800.0f / 600.0f, 0.1f, 1000.0f);
 
 	cy::Matrix4f mvp = projection * view * model;
@@ -300,7 +336,7 @@ void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject) {
 
 	glBindVertexArray(planeVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(VertexProperty), planeVertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(VertexProperty), planeVertices.data(), GL_STATIC_DRAW);
 
 	program.SetAttribBuffer("pos", planeVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
 	program.SetAttribBuffer("normal", planeVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
@@ -310,89 +346,172 @@ void setupBuffers(cy::GLSLProgram& program, GameObject& gameObject) {
 }
 
 
-GLuint sphereVAO, sphereVBO;
-std::vector<VertexProperty> sphereVertices{};
-cy::GLSLProgram sphereProgram;
+#pragma region Reflective Object Rendering
+void setupReflectiveObject(const char* path) {
+	reflectiveObjectActive = true;
+	cy::TriMesh reflectiveObjectMesh;
+	std::vector<VertexProperty> reflectiveObjectVertices{};
 
-void setupSphereObject() {
-	cy::TriMesh sphereMesh;
-	sphereMesh.LoadFromFileObj("models\\sphere.obj");
-	for (int i = 0; i < sphereMesh.NF(); i++) {
-		cy::TriMesh::TriFace f = sphereMesh.F(i);
+	reflectiveObjectMesh.LoadFromFileObj(path);
+	for (int i = 0; i < reflectiveObjectMesh.NF(); i++) {
+		cy::TriMesh::TriFace v_f = reflectiveObjectMesh.F(i);
+		cy::TriMesh::TriFace n_f = reflectiveObjectMesh.FN(i);
+		cy::TriMesh::TriFace t_f = reflectiveObjectMesh.FT(i);
 		for (int j = 0; j < 3; j++) {
-			cy::Vec3f vertex = sphereMesh.V(f.v[j]);
-			cy::Vec3f normal = sphereMesh.VN(f.v[j]);
-			cy::Vec3f texCoord = sphereMesh.VT(f.v[j]);
+			cy::Vec3f vertex = reflectiveObjectMesh.V(v_f.v[j]);
+			cy::Vec3f normal = reflectiveObjectMesh.VN(n_f.v[j]);
+			cy::Vec3f texCoord = reflectiveObjectMesh.VT(t_f.v[j]);
 
-			sphereVertices.push_back(VertexProperty{ 
-				Vertex{vertex.x, vertex.y, vertex.z}, 
-				Normal{normal.x, normal.y, normal.z}, 
+			reflectiveObjectVertices.push_back(VertexProperty{
+				Vertex{vertex.x, vertex.y, vertex.z},
+				Normal{normal.x, normal.y, normal.z},
 				Texture{texCoord.x, texCoord.y} }
 			);
-
 		}
 	}
 
-	glGenVertexArrays(1, &sphereVAO);
-	glGenBuffers(1, &sphereVBO);
-	glBindVertexArray(sphereVAO);
 
-	sphereProgram.BuildFiles("shaders\\reflections\\reflect.vert", "shaders\\reflections\\reflect.frag");
-	sphereProgram.SetUniform("environmentTexture", 5);
+	reflectiveObjectMesh.ComputeBoundingBox();
+	cy::Vec3<float> min = reflectiveObjectMesh.GetBoundMin();
+	cy::Vec3<float> max = reflectiveObjectMesh.GetBoundMax();
+	cy::Vec3<float> center = (min + max) * 0.5f;
+	float radius = cy::Max((max - min).x, (max - min).y, (max - min).z);
+	reflectiveObjectModel = cy::Matrix4f::Translation(-center);
 
-	glBindBuffer(GL_ARRAY_BUFFER, sphereVBO);
-	glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(VertexProperty), sphereVertices.data(), GL_STATIC_DRAW);
-	sphereProgram.SetAttribBuffer("pos", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
-	sphereProgram.SetAttribBuffer("normal", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
-	sphereProgram.SetAttribBuffer("texCoord", sphereVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 
+
+	glGenVertexArrays(1, &reflectiveObjectVAO);
+	glGenBuffers(1, &reflectiveObjectVBO);
+	glBindVertexArray(reflectiveObjectVAO);
+
+	reflectiveObjectProgram.BuildFiles("shaders\\reflections\\reflect.vert", "shaders\\reflections\\reflect.frag");
+	reflectiveObjectProgram.SetUniform("environmentTexture", 5);
+
+	glBindBuffer(GL_ARRAY_BUFFER, reflectiveObjectVBO);
+	glBufferData(GL_ARRAY_BUFFER, reflectiveObjectVertices.size() * sizeof(VertexProperty), reflectiveObjectVertices.data(), GL_STATIC_DRAW);
+	reflectiveObjectProgram.SetAttribBuffer("pos", reflectiveObjectVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
+	reflectiveObjectProgram.SetAttribBuffer("normal", reflectiveObjectVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	reflectiveObjectProgram.SetAttribBuffer("texCoord", reflectiveObjectVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty),
 		sizeof(Vertex) + sizeof(Normal));
 
-	std::cout << "Sphere Finished Initialization" << std::endl;
+	reflectiveObjectVertexCount = reflectiveObjectVertices.size();
+	std::cout << "Reflective Object Finished Initialization" << std::endl;
 }
 
-void renderSphereObject(cy::Matrix4f view, cy::Matrix4f project) {
-	sphereProgram.Bind();
-	glBindVertexArray(sphereVAO);
-	sphereProgram.SetUniform("model", cy::Matrix4f::Identity());
-	sphereProgram.SetUniform("view", view);
-	sphereProgram.SetUniform("proj", project);
-	cy::Matrix4f mv = view * cy::Matrix4f::Identity();
-	sphereProgram.SetUniform("mv", mv);
-	sphereProgram.SetUniform("mvp", project * view * cy::Matrix4f::Identity());
-	sphereProgram.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
-	
-	sphereProgram.SetUniform("i_model", cy::Matrix4f::Identity().GetInverse());
-	sphereProgram.SetUniform("i_view", view.GetInverse());
-	sphereProgram.SetUniform("i_proj", project.GetInverse());
+void renderReflectiveObject(cy::Matrix4f view, cy::Matrix4f project) {
+	reflectiveObjectProgram.Bind();
+	glBindVertexArray(reflectiveObjectVAO);
+	reflectiveObjectProgram.SetUniform("model", reflectiveObjectModel);
+	reflectiveObjectProgram.SetUniform("view", view);
+	reflectiveObjectProgram.SetUniform("proj", project);
+	cy::Matrix4f mv = view * reflectiveObjectModel;
+	reflectiveObjectProgram.SetUniform("mv", mv);
+	reflectiveObjectProgram.SetUniform("mvp", project * mv);
+	reflectiveObjectProgram.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
+
+	reflectiveObjectProgram.SetUniform("i_model", reflectiveObjectModel.GetInverse());
+	reflectiveObjectProgram.SetUniform("i_view", view.GetInverse());
+	reflectiveObjectProgram.SetUniform("i_proj", project.GetInverse());
 
 	cy::Vec3f _lightDirection = mainLight.GetLightDirection();
-	sphereProgram.SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
-	sphereProgram.SetUniform("specularExponent", 32.0f);
+	reflectiveObjectProgram.SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
+	reflectiveObjectProgram.SetUniform("specularExponent", 32.0f);
 
 
-	glDrawArrays(GL_TRIANGLES, 0, sphereVertices.size());
+	//glDrawArrays(GL_TRIANGLES, 0, reflectiveObjectVertices.size());
+	glDrawArrays(GL_TRIANGLES, 0, reflectiveObjectVertexCount);
 
 	glBindVertexArray(0);
 }
 
-void recompileShaders() {
-	sphereProgram.BuildFiles("shaders\\reflections\\reflect.vert", "shaders\\reflections\\reflect.frag");
-	sphereProgram.SetUniform("environmentTexture", 5);
+void recompileReflectiveObject() {
+	reflectiveObjectProgram.BuildFiles("shaders\\reflections\\reflect.vert", "shaders\\reflections\\reflect.frag");
+	reflectiveObjectProgram.SetUniform("environmentTexture", 5);
 
-	sphereProgram.SetAttribBuffer("pos", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
-	sphereProgram.SetAttribBuffer("normal", sphereVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
-	sphereProgram.SetAttribBuffer("texCoord", sphereVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty),
+	reflectiveObjectProgram.SetAttribBuffer("pos", reflectiveObjectVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
+	reflectiveObjectProgram.SetAttribBuffer("normal", reflectiveObjectVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	reflectiveObjectProgram.SetAttribBuffer("texCoord", reflectiveObjectVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty),
 		sizeof(Vertex) + sizeof(Normal));
 
 
-	std::cout << "Recompiled Shaders" << std::endl;
+	std::cout << "Recompiled Reflective Object Shaders" << std::endl;
+}
+#pragma endregion
+
+#pragma region Reflective Plane Rendering
+void setupReflectivePlane() {
+	reflectivePlaneActive = true;
+	reflectivePlaneModel = cy::Matrix4f::Identity();
+	reflectivePlaneModel = cy::Matrix4f::RotationX(degToRad(-90.0f)) * reflectivePlaneModel;
+	reflectivePlaneModel = cy::Matrix4f::Translation(cy::Vec3f(0.0f, -7.88f, 0.0f)) * reflectivePlaneModel;
+	
+	glGenVertexArrays(1, &reflectivePlaneVAO);
+	glGenBuffers(1, &reflectivePlaneVBO);
+	glBindVertexArray(reflectivePlaneVAO);
+
+	reflectivePlaneProgram.BuildFiles("shaders\\reflections\\reflectPlane.vert", "shaders\\reflections\\reflectPlane.frag");
+	reflectivePlaneProgram.SetUniform("renderTexture", 3);
+	reflectivePlaneProgram.SetUniform("environmentTexture", 5);
+
+	diffuseTexture.Bind(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, reflectivePlaneVBO);
+	glBufferData(GL_ARRAY_BUFFER, reflectivePlaneVertices.size() * sizeof(VertexProperty), reflectivePlaneVertices.data(), GL_STATIC_DRAW);
+	reflectivePlaneProgram.SetAttribBuffer("pos", reflectivePlaneVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
+	reflectivePlaneProgram.SetAttribBuffer("normal", reflectivePlaneVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	reflectivePlaneProgram.SetAttribBuffer("texCoord", reflectivePlaneVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty),
+		sizeof(Vertex) + sizeof(Normal));
+
+
+	std::cout << "Reflective Plane Finished Initialization" << std::endl;
+}
+
+void renderReflectivePlane(cy::Matrix4f view, cy::Matrix4f project) {
+	reflectivePlaneProgram.Bind();
+	glBindVertexArray(reflectivePlaneVAO);
+	reflectivePlaneProgram.SetUniform("model", reflectivePlaneModel);
+	reflectivePlaneProgram.SetUniform("view", view);
+	reflectivePlaneProgram.SetUniform("proj", project);
+	cy::Matrix4f mv = view * reflectivePlaneModel;
+	reflectivePlaneProgram.SetUniform("mv", mv);
+	reflectivePlaneProgram.SetUniform("mvp", project * mv);
+	reflectivePlaneProgram.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
+
+	reflectivePlaneProgram.SetUniform("i_model", reflectivePlaneModel.GetInverse());
+	reflectivePlaneProgram.SetUniform("i_view", view.GetInverse());
+	reflectivePlaneProgram.SetUniform("i_proj", project.GetInverse());
+
+	cy::Vec3f _lightDirection = mainLight.GetLightDirection();
+	reflectivePlaneProgram.SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
+	reflectivePlaneProgram.SetUniform("specularExponent", 32.0f);
+
+	glDrawArrays(GL_TRIANGLES, 0, reflectivePlaneVertices.size());
+	glBindVertexArray(0);
+}
+
+void recompileReflectivePlane() {
+	reflectivePlaneProgram.BuildFiles("shaders\\reflections\\reflectPlane.vert", "shaders\\reflections\\reflectPlane.frag");
+	reflectivePlaneProgram.SetUniform("renderTexture", 3);
+	reflectivePlaneProgram.SetUniform("environmentTexture", 5);
+
+	reflectivePlaneProgram.SetAttribBuffer("pos", reflectivePlaneVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
+	reflectivePlaneProgram.SetAttribBuffer("normal", reflectivePlaneVBO, 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex));
+	reflectivePlaneProgram.SetAttribBuffer("texCoord", reflectivePlaneVBO, 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty),
+		sizeof(Vertex) + sizeof(Normal));
+
+	std::cout << "Recompiled Reflective Plane Shaders" << std::endl;
+}
+#pragma endregion
+
+void recompileShaders() {
+	if (reflectiveObjectActive) recompileReflectiveObject();
+	if (reflectivePlaneActive) recompileReflectivePlane();
 }
 
 cy::GLSLProgram CreateObjectProgram() {
 
 	cy::GLSLProgram program;
 	program.BuildFiles("shaders\\helloVertexShader.vert", "shaders\\helloFragmentShader.frag");
-	
+
 	// Teture Unit Bindings
 	program.SetUniform("diffuseTexture", 0);
 	program.SetUniform("specularTexture", 1);
@@ -416,13 +535,6 @@ cy::GLSLProgram CreatePlaneProgram() {
 
 
 void processInputs(GLFWwindow* window, OrbitCamera& camera, DirectionalLight& light) {
-	//if (wasdInput[0]) { camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime); }
-	//if (wasdInput[1]) { camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime); }
-	//if (wasdInput[2]) { camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime); }
-	//if (wasdInput[3]) { camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime); }
-	//if (spaceCInput[0]) { camera.ProcessKeyboard(Camera_Movement::UP, deltaTime); }
-	//if (spaceCInput[1]) { camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime); }
-
 	if (numberInput[0]) { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
 	if (numberInput[1]) { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
 	if (numberInput[2]) { glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); }
@@ -432,43 +544,19 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera, DirectionalLight& li
 	}
 
 	if (ctrlPressed) {
-		if (lmbPressed) { 
-			light.SetYaw(light.GetYaw() - mouseDeltaX * 0.1f);
-			light.SetPitch(light.GetPitch() + mouseDeltaY * 0.1f);
+		if (lmbPressed) {
+			light.SetYaw(light.GetYaw() - degToRad(mouseDeltaX));
+			light.SetPitch(light.GetPitch() + degToRad(mouseDeltaY));
 		}
 	}
 	else {
 		if (lmbPressed) { camera.Rotate(mouseDeltaX, -mouseDeltaY); }
 		else if (rmbPressed) { camera.Move(mouseDeltaY); }
 	}
-	
+
 
 	if (wasdInput[2]) { camera.SetFOV(camera.GetFOV() + degToRad(1.0f)); }
 	if (wasdInput[0]) { camera.SetFOV(camera.GetFOV() - degToRad(1.0f)); }
-	/*camera.ProcessMouseScroll(scrollDelta);
 
-	camera.ProcessMouseMovement(xoffset, yoffset);
-	if (lmb && alt) {
-		plane_p += xoffset * sensitivity;
-		plane_y += yoffset * sensitivity;
-	}
-	else if (lmb && ctrl) {
-		azimuth -= xoffset * sensitivity;
-		inclination += yoffset * sensitivity;
-	}
-	else if (lmb) {
-		p += xoffset * sensitivity;
-		y += yoffset * sensitivity;
-	}
-
-	if (rmb && alt) {
-		plane_d += yoffset * cameraSpeed;
-	}
-	else if (rmb) {
-		d += yoffset * cameraSpeed;
-	}
-	if (shiftInput) { camera.MovementSpeed = 5.0f; }
-	else { camera.MovementSpeed = 2.5f; }*/
-
-	// do stuff with the inputs here
+	resetDeltas();
 }

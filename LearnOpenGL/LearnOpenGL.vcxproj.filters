@@ -40,6 +40,8 @@
     <None Include="shaders\cubeEnvironment.vert" />
     <None Include="shaders\Reflections\reflect.frag" />
     <None Include="shaders\Reflections\reflect.vert" />
+    <None Include="shaders\reflections\reflectPlane.frag" />
+    <None Include="shaders\reflections\reflectPlane.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
@@ -70,6 +72,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\lights.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\transforms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\reflection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
