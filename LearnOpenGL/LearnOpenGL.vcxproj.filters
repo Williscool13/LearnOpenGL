@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{4ca66110-fcfd-42af-80d6-30d1cf1646a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\glad\glad.c">
@@ -32,21 +35,44 @@
     <None Include="shaders\helloFragmentShader.frag">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="shaders\planeFragmentShader.frag" />
-    <None Include="shaders\planeVertexShader.vert" />
-    <None Include="shaders\environmentFragment.frag" />
-    <None Include="shaders\environmentVertex.vert" />
-    <None Include="shaders\cubeEnvironment.frag" />
-    <None Include="shaders\cubeEnvironment.vert" />
-    <None Include="shaders\Reflections\reflect.frag" />
-    <None Include="shaders\Reflections\reflect.vert" />
-    <None Include="shaders\reflections\reflectPlane.frag" />
-    <None Include="shaders\reflections\reflectPlane.vert" />
+    <None Include="shaders\basic\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\cubeEnvironment.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\cubeEnvironment.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\environmentFragment.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\environmentVertex.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\planeFragmentShader.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\planeVertexShader.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\Reflections\reflect.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\Reflections\reflect.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\reflections\reflectPlane.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\reflections\reflectPlane.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\deltatime.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -78,6 +104,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\reflection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
