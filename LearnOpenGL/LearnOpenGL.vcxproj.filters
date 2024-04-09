@@ -71,6 +71,24 @@
     <None Include="shaders\helloShader.frag">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\basic\basicShaded.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\basicShaded.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\texture.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\texture.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\depth.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\depth.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h">

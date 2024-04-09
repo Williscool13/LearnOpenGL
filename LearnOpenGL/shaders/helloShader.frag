@@ -15,8 +15,6 @@ uniform vec3 Kd;
 uniform vec3 Ks;
 uniform float specularExponent;
 
-uniform sampler2D renderTextureTest;
-
 //in from vert
 in vec3 viewPosition;
 in vec3 viewNormal;
