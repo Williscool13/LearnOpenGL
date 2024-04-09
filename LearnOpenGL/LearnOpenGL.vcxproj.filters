@@ -29,12 +29,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\helloVertexShader.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="shaders\helloFragmentShader.frag">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="shaders\basic\basic.frag">
       <Filter>Shaders</Filter>
     </None>
@@ -71,14 +65,14 @@
     <None Include="shaders\reflections\reflectPlane.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\helloShader.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\helloShader.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\Desktop\OpenGL\Include\deltatime.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D:\Desktop\OpenGL\Include\inputs.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -107,6 +101,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Desktop\OpenGL\Include\camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\inputs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Desktop\OpenGL\Include\deltatime.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

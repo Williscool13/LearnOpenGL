@@ -20,6 +20,8 @@ out vec3 mPos;
 out vec3 vPos;
 out vec3 vNormal;
 out vec2 vTexCoord;
+out vec3 wNormal;
+
 out vec3 dirTexCoord;
 
 
@@ -29,6 +31,7 @@ void main()
 	vPos = (mv * vec4(pos, 1.0)).xyz;
 	vNormal = normalize(mvN * normal);
 	vTexCoord = texCoord;
+    wNormal = normalize((m * vec4(normal, 0.0)).xyz);
 
 	dirTexCoord = (i_v * vec4(reflect(vPos, vNormal), 0.0)).xyz;
 }

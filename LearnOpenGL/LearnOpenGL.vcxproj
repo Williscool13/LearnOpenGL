@@ -145,8 +145,8 @@
     <None Include="shaders\cubeEnvironment.vert" />
     <None Include="shaders\environmentFragment.frag" />
     <None Include="shaders\environmentVertex.vert" />
-    <None Include="shaders\helloFragmentShader.frag" />
-    <None Include="shaders\helloVertexShader.vert" />
+    <None Include="shaders\helloShader.frag" />
+    <None Include="shaders\helloShader.vert" />
     <None Include="shaders\planeFragmentShader.frag" />
     <None Include="shaders\planeVertexShader.vert" />
     <None Include="shaders\Reflections\reflect.frag" />

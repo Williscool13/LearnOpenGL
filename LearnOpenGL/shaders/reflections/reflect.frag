@@ -16,8 +16,8 @@ layout (location = 0) out vec4 color;
 void main()
 {	
 	// blinn spec
-    vec3 lightDir = normalize(mainLightDirectionView);
     vec3 viewDir = normalize(-vPos);
+    vec3 lightDir = normalize(-mainLightDirectionView);
     vec3 halfDir = normalize(lightDir + viewDir);
 
 	float nDotH = max(dot(vNormal, halfDir), 0.0f);

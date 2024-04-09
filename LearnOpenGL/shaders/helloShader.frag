@@ -35,7 +35,7 @@ void main()
     ambientColor = vec3(ambientColor.r * Ka.r, ambientColor.g * Ka.g, ambientColor.b * Ka.b);
 
     vec3 viewDir = normalize(-viewPosition);
-    vec3 lightDir = normalize(mainLightDirectionView);
+    vec3 lightDir = normalize(-mainLightDirectionView);
     vec3 halfDir = normalize(lightDir + viewDir);
 
     vec3 viewReflect = reflect(viewDir, viewNormal);
@@ -43,8 +43,16 @@ void main()
     // Blinn-Phong
     float nDotL = max(dot(viewNormal, lightDir), 0.0f);
     float diff = nDotL;
-    float nDotH = max(dot(viewNormal, halfDir), 0.0f);
-    float spec = pow(nDotH, specularExponent);
+
+
+    float spec = 0.0f;
+    if (nDotL > 0.0f){
+        float nDotH = max(dot(viewNormal, halfDir), 0.0f);
+        spec = pow(nDotH, specularExponent);
+    }
+    
+
+
 
     vec3 ambient = ambientColor;
     vec3 diffuse = diff * diffuseColor;

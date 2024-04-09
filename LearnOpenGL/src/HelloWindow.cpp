@@ -130,21 +130,31 @@ int main(int argc, char* argv[])
 
 
     GameObject mainObject{ objFilePath
-        , "shaders\\reflections\\reflect.vert"sv
-        , "shaders\\reflections\\reflect.frag"sv };
+        //, "shaders\\reflections\\reflect.vert"sv
+        //, "shaders\\reflections\\reflect.frag"sv };
+        , "shaders\\helloShader.vert"sv
+        , "shaders\\helloShader.frag"sv };
+
 
 
     GameObject reflectivePlane{ "models\\plane.obj"
            , "shaders\\reflections\\reflectPlane.vert"sv
            , "shaders\\reflections\\reflectPlane.frag"sv };
 
+
+    GameObject lightRepresentation{ "models\\sphere.obj"
+           , "shaders\\basic\\basic.vert"sv
+           , "shaders\\basic\\basic.frag"sv };
+
     setupBuffers(mainObject);
     setupBuffers(reflectivePlane);
+    setupBuffers(lightRepresentation);
 
-    reflectivePlane.applyRotation(90.0f, 0.0f, 0.0f);
+
+
     float translationDist = (mainObject.getBoundMax().y - mainObject.getBoundMin().y) / 2.0f;
     reflectivePlane.applyTranslation(cy::Vec3f(0.0f, -translationDist, 0.0f));
-
+    reflectivePlane.applyRotation(-90.0f, 0.0f, 0.0f);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -169,15 +179,19 @@ int main(int argc, char* argv[])
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        
         // cube has to be done before objects to avoid z-fighting
         renderCubeEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetCameraPosition());
 
         renderGameObject(reflectivePlane, camera.GetViewMatrix(), camera.GetProjectionMatrix());
         renderGameObject(mainObject, camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
+        lightRepresentation.setTranslation(mainLight.GetLightPosition());
+        renderGameObject(lightRepresentation, camera.GetViewMatrix(), camera.GetProjectionMatrix());
+
         // render background
         //renderEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix());
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -280,7 +294,7 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera, DirectionalLight& li
     if (ctrlPressed) {
         if (lmbPressed) {
             light.SetYaw(light.GetYaw() - degToRad(mouseDeltaX));
-            light.SetPitch(light.GetPitch() + degToRad(mouseDeltaY));
+            light.SetPitch(light.GetPitch() - degToRad(mouseDeltaY));
         }
     }
     else {
