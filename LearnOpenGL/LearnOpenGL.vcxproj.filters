@@ -89,6 +89,21 @@
     <None Include="shaders\basic\depth.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\basic\depthCube.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\depthCube.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\depthCube.geom">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\basic.geom">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\basicShaded.geom">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h">

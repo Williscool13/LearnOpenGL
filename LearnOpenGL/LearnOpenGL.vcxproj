@@ -140,11 +140,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\basic\basic.frag" />
+    <None Include="shaders\basic\basic.geom" />
     <None Include="shaders\basic\basic.vert" />
     <None Include="shaders\basic\basicShaded.frag" />
+    <None Include="shaders\basic\basicShaded.geom" />
     <None Include="shaders\basic\basicShaded.vert" />
     <None Include="shaders\basic\depth.frag" />
     <None Include="shaders\basic\depth.vert" />
+    <None Include="shaders\basic\depthCube.frag" />
+    <None Include="shaders\basic\depthCube.geom" />
+    <None Include="shaders\basic\depthCube.vert" />
     <None Include="shaders\basic\texture.frag" />
     <None Include="shaders\basic\texture.vert" />
     <None Include="shaders\cubeEnvironment.frag" />
