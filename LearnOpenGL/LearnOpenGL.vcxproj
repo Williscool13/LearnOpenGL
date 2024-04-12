@@ -139,6 +139,8 @@
     <ClCompile Include="src\lodepng.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\advancedMapping.frag" />
+    <None Include="shaders\advancedMapping.vert" />
     <None Include="shaders\basic\basic.frag" />
     <None Include="shaders\basic\basic.geom" />
     <None Include="shaders\basic\basic.vert" />

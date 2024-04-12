@@ -104,6 +104,12 @@
     <None Include="shaders\basic\basicShaded.geom">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\advancedMapping.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\advancedMapping.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h">

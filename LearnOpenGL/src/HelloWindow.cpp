@@ -48,13 +48,12 @@ void setupBuffers(GameObject& gob);
 void recompileShaders();
 void renderGameObject(
     GameObject& gob
-    , cy::Matrix4f view
-    , cy::Matrix4f proj
     , cy::GLTexture2D& diffuseTexture
     , cy::GLTexture2D& specularTexture
     , cy::GLTexture2D& ambientTexture
     , DirectionalLight& mainLight
     , PointLight& pointLight
+    , OrbitCamera& camera
 );
 void depthRenderGameObject(GameObject& gob, cy::GLSLProgram& depthProgram, cy::Matrix4f lightView, cy::Matrix4f lightProj);
 void cubeDepthRenderGameObject(GameObject& gob, cy::GLSLProgram& cubeDepthProgram, PointLight& pointLight);
@@ -124,16 +123,21 @@ int main(int argc, char* argv[])
     cy::GLTexture2D diffuseTexture{};
     cy::GLTexture2D specularTexture{};
     cy::GLTexture2D ambientTexture{};
+    cy::GLTexture2D normalTexture{};
     cy::GLRenderTexture2D renderTexture{};
     diffuseTexture.Initialize();
     specularTexture.Initialize();
     ambientTexture.Initialize();
+    normalTexture.Initialize();
+    normalTexture.Bind(7);
+    TextureProperty teapotNormal = loadTexture("teapot_normal.png");
+    normalTexture.SetImage(teapotNormal.texture.data(), 4, teapotNormal.width, teapotNormal.height);
 
-    renderTexture.Initialize(true, renderTextureChannels, viewportWidth, viewportHeight);
     renderTexture.BindTexture(3);
+    renderTexture.Initialize(true, renderTextureChannels, viewportWidth, viewportHeight);
 
     //initializeEnvironmentMap(4);
-    initializeCubeEnvironmentMap(5);
+    //initializeCubeEnvironmentMap(5);
 
     // Shadow Mapping
     //  Point Light
@@ -176,15 +180,22 @@ int main(int argc, char* argv[])
     };
 
     GameObject pointLightRepresentation{ "models\\sphere.obj"
-        , "shaders\\basic\\basicShaded.vert"sv
-        , "shaders\\basic\\basicShaded.frag"sv
-        , "shaders\\basic\\basicShaded.geom"sv
+        , "shaders\\basic\\basic.vert"sv
+        , "shaders\\basic\\basic.frag"sv
+        , "shaders\\basic\\basic.geom"sv
     };
 
     GameObject renTexDebug{ "models\\plane.obj"
         , "shaders\\basic\\texture.vert"sv
-        , "shaders\\basic\\texture.frag"sv 
+        , "shaders\\basic\\texture.frag"sv
     };
+
+
+    GameObject planeNormalMapping { "models\\plane.obj"
+        , "shaders\\advancedMapping.vert"sv
+        , "shaders\\advancedMapping.frag"sv
+    };
+
 
     gameObjects.push_back(mainObject);
     //gameObjects.push_back(reflectivePlane);
@@ -197,6 +208,7 @@ int main(int argc, char* argv[])
     setupBuffers(lightRepresentation);
     setupBuffers(pointLightRepresentation);
     setupBuffers(renTexDebug);
+    setupBuffers(planeNormalMapping);
 
     renTexDebug.applyTranslation(cy::Vec3f(0.0f, -10.0f, 0.0f));
     renTexDebug.applyRotation(degToRad(-90.0f), 0.0f, 0.0f);
@@ -208,7 +220,8 @@ int main(int argc, char* argv[])
     groundPlane.applyTranslation(cy::Vec3f(0.0f, -translationDist, 0.0f));
     groundPlane.applyRotation(degToRad(-90.0f), 0.0f, 0.0f);
 
-
+    //planeNormalMapping.applyTranslation(cy::Vec3f(0.0f, -translationDist, 0.0f));
+    planeNormalMapping.applyRotation(degToRad(-90.0f), 0.0f, 0.0f);
 
     cy::GLSLProgram depthProgram{};
     depthProgram.BuildFiles("shaders\\basic\\depth.vert", "shaders\\basic\\depth.frag");
@@ -250,7 +263,7 @@ int main(int argc, char* argv[])
         glClear(GL_DEPTH_BUFFER_BIT);
 
         // render gameobject w/ light view and projection
-        depthRenderGameObject(mainObject, depthProgram, mainLight.getViewMatrix(), mainLight.getProjectionMatrix());
+        // depthRenderGameObject(mainObject, depthProgram, mainLight.getViewMatrix(), mainLight.getProjectionMatrix());
 
         glCullFace(GL_BACK);
         renderDepth.Unbind();
@@ -277,27 +290,31 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // cube has to be done before objects to avoid z-fighting
-        renderCubeEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetCameraPosition());
+        //renderCubeEnvironmentMap(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.getCameraPosition());
 
 
-        lightRepresentation.setTranslation(mainLight.getPosition());
+        /*lightRepresentation.setTranslation(mainLight.getPosition());
         lightRepresentation.setYaw(-mainLight.getYaw() + degToRad(-90.0f));
         lightRepresentation.setPitch(mainLight.getPitch());
-        renderGameObject(lightRepresentation, camera.GetViewMatrix(), camera.GetProjectionMatrix()
-            , diffuseTexture, specularTexture, ambientTexture, mainLight, pointLight);
-        
+        renderGameObject(lightRepresentation, diffuseTexture, specularTexture, ambientTexture
+            , mainLight, pointLight, camera);
+        */
         pointLightRepresentation.setTranslation(pointLight.getPosition());
-        renderGameObject(pointLightRepresentation, camera.GetViewMatrix(), camera.GetProjectionMatrix()
-            , diffuseTexture, specularTexture, ambientTexture, mainLight, pointLight);
+        renderGameObject(pointLightRepresentation, diffuseTexture, specularTexture, ambientTexture
+            , mainLight, pointLight, camera);
 
 
-        renderGameObject(mainObject, camera.GetViewMatrix(), camera.GetProjectionMatrix()
-            , diffuseTexture, specularTexture, ambientTexture, mainLight, pointLight);
-        renderGameObject(groundPlane, camera.GetViewMatrix(), camera.GetProjectionMatrix()
-            , diffuseTexture, specularTexture, ambientTexture, mainLight, pointLight);
+        /*renderGameObject(mainObject, diffuseTexture, specularTexture, ambientTexture
+            , mainLight, pointLight, camera);
+        renderGameObject(groundPlane, diffuseTexture, specularTexture, ambientTexture
+            , mainLight, pointLight, camera);
+        */
 
-        
-        
+
+        renderGameObject(planeNormalMapping, diffuseTexture, specularTexture, ambientTexture
+            , mainLight, pointLight, camera);
+
+
         //renderGameObject(renTexDebug, camera.GetViewMatrix(), camera.GetProjectionMatrix()
             //, diffuseTexture, specularTexture, ambientTexture, mainLight);
 
@@ -320,19 +337,50 @@ void setupBuffers(GameObject& gob) {
     glBufferData(GL_ARRAY_BUFFER, gob.getVertices().size() * sizeof(VertexProperty), gob.getVertices().data(), GL_STATIC_DRAW);
 
     gob.getProgram().SetAttribBuffer("pos", gob.getVBO(), 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), 0);
-    if (gob.hasNormals()) { gob.getProgram().SetAttribBuffer("normal", gob.getVBO(), 3, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex)); }
-    if (gob.hasTextureVertices()) { gob.getProgram().SetAttribBuffer("texCoord", gob.getVBO(), 2, GL_FLOAT, GL_FALSE, sizeof(VertexProperty), sizeof(Vertex) + sizeof(Normal)); }
+    if (gob.hasNormals()) {
+        gob.getProgram().SetAttribBuffer(
+            "normal"
+            , gob.getVBO()
+            , 3
+            , GL_FLOAT
+            , GL_FALSE
+            , sizeof(VertexProperty)
+            , sizeof(Vertex)
+        );
+    }
+    if (gob.hasNormals() && gob.hasTextureVertices()) {
+        gob.getProgram().SetAttribBuffer(
+            "tangent"
+            , gob.getVBO()
+            , 3
+            , GL_FLOAT, GL_FALSE
+            , sizeof(VertexProperty)
+            , sizeof(Vertex) + sizeof(Normal)
+        );
+
+    }
+    if (gob.hasTextureVertices()) {
+        gob.getProgram().SetAttribBuffer(
+            "texCoord"
+            , gob.getVBO()
+            , 2
+            , GL_FLOAT, GL_FALSE
+            , sizeof(VertexProperty)
+            , sizeof(Vertex) + sizeof(Normal) + sizeof(Tangent)
+        );
+    }
+
+
 }
 
 void renderGameObject(
     GameObject& gob
-    , cy::Matrix4f view
-    , cy::Matrix4f proj
     , cy::GLTexture2D& diffuseTexture
     , cy::GLTexture2D& specularTexture
     , cy::GLTexture2D& ambientTexture
     , DirectionalLight& mainLight
     , PointLight& pointLight
+    , OrbitCamera& camera
 ) {
     gob.getProgram().Bind();
     glBindVertexArray(gob.getVAO());
@@ -345,9 +393,11 @@ void renderGameObject(
     gob.getProgram().SetUniform("shadowCubeTexture", 4);
     gob.getProgram().SetUniform("environmentTexture", 5);
     gob.getProgram().SetUniform("shadowTexture", 6);
-
+    gob.getProgram().SetUniform("normalTexture", 7);
 
     cy::Matrix4f model = gob.getModelMatrix();
+    cy::Matrix4f view = camera.GetViewMatrix();
+    cy::Matrix4f proj = camera.GetProjectionMatrix();
     cy::Matrix4f mvp = proj * view * model;
     cy::Matrix4f mv = view * model;
 
@@ -370,8 +420,10 @@ void renderGameObject(
     shadowvp = cy::Matrix4f::Translation(cy::Vec3f(0.5f, 0.5f, 0.5f)) * shadowvp;
     gob.getProgram().SetUniform("shadowvp", shadowvp);
 
-    gob.getProgram().SetUniform("shadowCubePos", pointLight.getPosition());
+    gob.getProgram().SetUniform("pointLightPos", pointLight.getPosition());
     gob.getProgram().SetUniform("shadowCubeFarPlane", pointLight.getFarPlane());
+
+    gob.getProgram().SetUniform("cameraPos", camera.getCameraPosition());
 
 
     cy::Vec3f _lightDirection = mainLight.GetLightDirection();
@@ -455,7 +507,7 @@ void cubeDepthRenderGameObject(
 
     cubeDepthProgram.SetUniform("farPlane", farPlane);
     cubeDepthProgram.SetUniform("lightPos", lightPos);
-    
+
     cubeDepthProgram.SetUniform("shadowMatrices", shadowTransorms.data(), 6);
 
     glDrawArrays(GL_TRIANGLES, 0, gob.getVertices().size());
@@ -484,7 +536,7 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera
     }
 
     if (pPressed) {
-        pointLight.setPosition(camera.GetCameraPosition());
+        pointLight.setPosition(camera.getCameraPosition());
     }
     if (ctrlPressed) {
         if (lmbPressed) {

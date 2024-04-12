@@ -1,8 +1,14 @@
 ﻿  HelloWindow.cpp
-D:\Desktop\OpenGL\Include\gameobject.h(253,22): warning C4018: '<': signed/unsigned mismatch
+D:\Desktop\OpenGL\Include\textures.h(36,23): warning C4244: 'initializing': conversion from 'unsigned int' to 'float', possible loss of data
   (compiling source file 'src/HelloWindow.cpp')
   
-D:\Desktop\OpenGL\Include\gameobject.h(270,22): warning C4018: '<': signed/unsigned mismatch
+D:\Desktop\OpenGL\Include\textures.h(41,53): warning C4244: 'argument': conversion from 'float' to 'const __int64', possible loss of data
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\gameobject.h(252,22): warning C4018: '<': signed/unsigned mismatch
+  (compiling source file 'src/HelloWindow.cpp')
+  
+D:\Desktop\OpenGL\Include\gameobject.h(297,22): warning C4018: '<': signed/unsigned mismatch
   (compiling source file 'src/HelloWindow.cpp')
   
 D:\Desktop\OpenGL\Include\inputs.h(85,18): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
@@ -77,13 +83,13 @@ D:\Desktop\OpenGL\Include\lights.h(44,26): warning C4305: '=': truncation from '
 D:\Desktop\OpenGL\Include\lights.h(47,27): warning C4305: '=': truncation from 'double' to 'float'
   (compiling source file 'src/HelloWindow.cpp')
   
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(83,58): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(83,43): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(101,37): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(101,22): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(132,74): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(132,59): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(384,61): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(437,57): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(461,57): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(82,58): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(82,43): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(100,37): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(100,22): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(137,74): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(137,59): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(436,61): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(489,57): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\twtw4\source\repos\LearnOpenGL\LearnOpenGL\src\HelloWindow.cpp(513,57): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
   LearnOpenGL.vcxproj -> C:\Users\twtw4\source\repos\LearnOpenGL\x64\Debug\LearnOpenGL.exe
