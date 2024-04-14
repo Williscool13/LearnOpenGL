@@ -45,7 +45,9 @@ float calculateCubemapShadow(vec3 wPos){
 
     float currentZ = length(fragToLight);
 
-    float cubemapBias = max(0.005f * (1.0f - dot(fs_in.wNormal, -fragToLight)), 0.005f) * shadowCubeFarPlane;
+    //float cubemapBias = max(0.005f * (1.0f - dot(fs_in.wNormal, -fragToLight)), 0.005f) 
+        //* shadowCubeFarPlane;
+    float cubemapBias = 0.0f;
     return currentZ - cubemapBias > closestZ ? 0.0f : 1.0f;
 }
 
@@ -109,11 +111,11 @@ void main()
 
     //color = vec4(fs_in.vTangent * 0.5 + 0.5, 1.0f);
     //color = vec4(fs_in.vTangent, 1.0f);
-    color = vec4(cross(fs_in.vNormal, fs_in.vTangent) * 0.5 + 0.5, 1.0f);
-    vec3 testNormal = texture(normalTexture, fs_in.uv).rgb;
-    testNormal = normalMapRemap(testNormal);
-    testNormal = normalize(fs_in.mv_tbn * testNormal);
-    color = vec4(testNormal, 1.0f);
+    //color = vec4(cross(fs_in.vNormal, fs_in.vTangent) * 0.5 + 0.5, 1.0f);
+    //vec3 testNormal = texture(normalTexture, fs_in.uv).rgb;
+    //testNormal = normalMapRemap(testNormal);
+    //testNormal = normalize(fs_in.mv_tbn * testNormal);
+    //color = vec4(testNormal, 1.0f);
 
     
     //color = vec4(texture(normalTexture, fs_in.uv).rgb, 1.0f);

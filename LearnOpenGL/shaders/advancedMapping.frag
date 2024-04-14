@@ -1,7 +1,7 @@
 #version 330 core
 layout (location = 0) out vec4 color;
 
-in VS_OUT {
+in GS_OUT {
     vec3 wPos;
     vec3 wNormal;
     vec3 wTangent;
@@ -21,6 +21,7 @@ uniform float specularExponent;
 uniform sampler2DShadow shadowTexture;
 uniform samplerCube shadowCubeTexture;
 uniform sampler2D normalTexture;
+uniform sampler2D displacementTexture;
 
 
 uniform float shadowCubeFarPlane;
@@ -80,28 +81,31 @@ void main()
     //  directional light - everything is in world space now.
     //vec3 viewDir = normalize(-fs_in.wPos);
     //vec3 lightDir = normalize(-mainLightDirectionView);
-    vec3 viewDir = normalize(cameraPos - fs_in.wPos);
-    vec3 lightDir = normalize(pointLightPos - fs_in.wPos);
-    vec3 halfDir = normalize(lightDir + viewDir);
+    vec3 worldFragmentDir = normalize(cameraPos - fs_in.wPos);
+    vec3 worldLightDir = normalize(pointLightPos - fs_in.wPos);
+    vec3 worldHalfDir = normalize(worldLightDir + worldFragmentDir);
 
-    vec3 viewReflect = reflect(viewDir, newNormal_ws);
+    vec3 worldReflect = reflect(worldFragmentDir, newNormal_ws);
 
     // Blinn-Phong
     //  ambient
-    vec3 ambient = 0.35f * lightColor * baseColor;
+    vec3 ambient = 0.2f * baseColor;
 
     //  diffuse
-    float nDotL = max(dot(newNormal_ws, lightDir), 0.0f);
+    float nDotL = clamp(dot(newNormal_ws, worldLightDir), 0.0f, 1.0f);
     vec3 diff = nDotL * lightColor;
 
     //  specular
-    float nDotH = max(dot(newNormal_ws, halfDir), 0.0f);
-    float specIntensity = pow(nDotH, specularExponent) * sign(nDotL);
+    float nDotH = max(dot(newNormal_ws, worldHalfDir), 0.0f);
+    float specIntensity = pow(nDotH, specularExponent);
     vec3 spec = specIntensity * lightColor;
 
-    float cosTheta = clamp(dot(lightDir, newNormal_ws), 0, 1);
+    float cosTheta = clamp(dot(worldLightDir, newNormal_ws), 0, 1);
 
     color = vec4((ambient + diff + spec) * baseColor, 1.0f);
+
+    //color = vec4(0.6f,0.3f,0.3f, 1.0f);
+    //color = vec4(vec3(texture(displacementTexture, fs_in.uv).r), 1.0f);
 
     // shadow mapping
     //float shadowBias = max(0.05f * (1.0f - dot(fs_in.wNormal, lightDir)), 0.005f);
@@ -115,7 +119,6 @@ void main()
     //color = vec4(light2, 1.0f);
 
     
-
     
 
     // bitan viz
@@ -125,5 +128,5 @@ void main()
 
 
     // normal viz
-    //color = vec4(fs_in.vNormal * 0.5 + 0.5, 1.0f);
+    //color = vec4(newNormal_ws * 0.5 + 0.5, 1.0f);
 }

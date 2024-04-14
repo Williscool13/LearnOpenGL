@@ -54,7 +54,20 @@ void renderGameObject(
     , DirectionalLight& mainLight
     , PointLight& pointLight
     , OrbitCamera& camera
+    , bool patch = false
 );
+void renderGameObject(
+    GameObject& gob
+    , cy::GLTexture2D& diffuseTexture
+    , cy::GLTexture2D& specularTexture
+    , cy::GLTexture2D& ambientTexture
+    , DirectionalLight& mainLight
+    , PointLight& pointLight
+    , OrbitCamera& camera
+    , cy::GLSLProgram& customProgram
+    , bool patch = false
+);
+
 void depthRenderGameObject(GameObject& gob, cy::GLSLProgram& depthProgram, cy::Matrix4f lightView, cy::Matrix4f lightProj);
 void cubeDepthRenderGameObject(GameObject& gob, cy::GLSLProgram& cubeDepthProgram, PointLight& pointLight);
 
@@ -64,7 +77,8 @@ void cubeDepthRenderGameObject(GameObject& gob, cy::GLSLProgram& cubeDepthProgra
 // Main Light
 
 std::vector<GameObject> gameObjects{};
-
+bool wireframe = false;
+float tessellationLevel = 1;
 
 int main(int argc, char* argv[])
 {
@@ -75,8 +89,8 @@ int main(int argc, char* argv[])
     }
 
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(viewportWidth, viewportHeight, "Williscool.", NULL, NULL);
@@ -110,6 +124,7 @@ int main(int argc, char* argv[])
 
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
@@ -124,14 +139,22 @@ int main(int argc, char* argv[])
     cy::GLTexture2D specularTexture{};
     cy::GLTexture2D ambientTexture{};
     cy::GLTexture2D normalTexture{};
+    cy::GLTexture2D displacementTexture{};
     cy::GLRenderTexture2D renderTexture{};
     diffuseTexture.Initialize();
     specularTexture.Initialize();
     ambientTexture.Initialize();
     normalTexture.Initialize();
+    displacementTexture.Initialize();
+
     normalTexture.Bind(7);
     TextureProperty teapotNormal = loadTexture("teapot_normal.png");
     normalTexture.SetImage(teapotNormal.texture.data(), 4, teapotNormal.width, teapotNormal.height);
+
+    displacementTexture.Bind(8);
+    TextureProperty teapotDisp = loadTexture("teapot_disp.png");
+    displacementTexture.SetImage(teapotDisp.texture.data(), 4, teapotDisp.width, teapotDisp.height);
+
 
     renderTexture.BindTexture(3);
     renderTexture.Initialize(true, renderTextureChannels, viewportWidth, viewportHeight);
@@ -191,9 +214,12 @@ int main(int argc, char* argv[])
     };
 
 
-    GameObject planeNormalMapping { "models\\plane.obj"
+    GameObject planeNormalMapping{ "models\\plane.obj"
         , "shaders\\advancedMapping.vert"sv
         , "shaders\\advancedMapping.frag"sv
+        , "shaders\\advancedMapping.geom"sv
+        , "shaders\\advancedMapping.tesc"sv
+        , "shaders\\advancedMapping.tese"sv
     };
 
 
@@ -230,6 +256,14 @@ int main(int argc, char* argv[])
     cubeDepthProgram.BuildFiles("shaders\\basic\\depthCube.vert", "shaders\\basic\\depthCube.frag"
         , "shaders\\basic\\depthCube.geom");
 
+    cy::GLSLProgram wireframeProgram{};
+    wireframeProgram.BuildFiles(
+         "shaders\\advancedMapping.vert"
+        , "shaders\\basic\\wireframe.frag"
+        , "shaders\\basic\\wireframe.geom"
+        , "shaders\\advancedMapping.tesc"
+        , "shaders\\advancedMapping.tese"
+    );
 
 
     while (!glfwWindowShouldClose(window))
@@ -312,9 +346,13 @@ int main(int argc, char* argv[])
 
 
         renderGameObject(planeNormalMapping, diffuseTexture, specularTexture, ambientTexture
-            , mainLight, pointLight, camera);
+            , mainLight, pointLight, camera, true);
 
-
+        if (wireframe) {
+            renderGameObject(planeNormalMapping, diffuseTexture, specularTexture, ambientTexture
+                , mainLight, pointLight, camera, wireframeProgram, true);
+        }
+        
         //renderGameObject(renTexDebug, camera.GetViewMatrix(), camera.GetProjectionMatrix()
             //, diffuseTexture, specularTexture, ambientTexture, mainLight);
 
@@ -381,19 +419,46 @@ void renderGameObject(
     , DirectionalLight& mainLight
     , PointLight& pointLight
     , OrbitCamera& camera
+    , bool patch
 ) {
-    gob.getProgram().Bind();
+    renderGameObject(
+        gob
+        , diffuseTexture
+        , specularTexture
+        , ambientTexture
+        , mainLight
+        , pointLight
+        , camera
+        , gob.getProgram()
+        , patch
+    );
+}
+
+
+void renderGameObject(
+    GameObject& gob
+    , cy::GLTexture2D& diffuseTexture
+    , cy::GLTexture2D& specularTexture
+    , cy::GLTexture2D& ambientTexture
+    , DirectionalLight& mainLight
+    , PointLight& pointLight
+    , OrbitCamera& camera
+    , cy::GLSLProgram& customProgram
+    , bool patch
+) {
+    customProgram.Bind();
     glBindVertexArray(gob.getVAO());
 
 
-    gob.getProgram().SetUniform("diffuseTexture", 0);
-    gob.getProgram().SetUniform("specularTexture", 1);
-    gob.getProgram().SetUniform("ambientTexture", 2);
-    gob.getProgram().SetUniform("renderTexture", 3);
-    gob.getProgram().SetUniform("shadowCubeTexture", 4);
-    gob.getProgram().SetUniform("environmentTexture", 5);
-    gob.getProgram().SetUniform("shadowTexture", 6);
-    gob.getProgram().SetUniform("normalTexture", 7);
+    customProgram.SetUniform("diffuseTexture", 0);
+    customProgram.SetUniform("specularTexture", 1);
+    customProgram.SetUniform("ambientTexture", 2);
+    customProgram.SetUniform("renderTexture", 3);
+    customProgram.SetUniform("shadowCubeTexture", 4);
+    customProgram.SetUniform("environmentTexture", 5);
+    customProgram.SetUniform("shadowTexture", 6);
+    customProgram.SetUniform("normalTexture", 7);
+    customProgram.SetUniform("displacementTexture", 8);
 
     cy::Matrix4f model = gob.getModelMatrix();
     cy::Matrix4f view = camera.GetViewMatrix();
@@ -401,39 +466,56 @@ void renderGameObject(
     cy::Matrix4f mvp = proj * view * model;
     cy::Matrix4f mv = view * model;
 
-    gob.getProgram().SetUniform("time", (float)glfwGetTime());
-    gob.getProgram().SetUniform("mvp", mvp);
-    gob.getProgram().SetUniform("mv", mv);
-    gob.getProgram().SetUniform("m", model);
-    gob.getProgram().SetUniform("v", view);
-    gob.getProgram().SetUniform("p", proj);
-    gob.getProgram().SetUniform("mN", model.GetSubMatrix3().GetInverse().GetTranspose());
-    gob.getProgram().SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
+    customProgram.SetUniform("time", (float)glfwGetTime());
+    customProgram.SetUniform("mvp", mvp);
+    customProgram.SetUniform("mv", mv);
+    customProgram.SetUniform("m", model);
+    customProgram.SetUniform("v", view);
+    customProgram.SetUniform("p", proj);
+    customProgram.SetUniform("mN", model.GetSubMatrix3().GetInverse().GetTranspose());
+    customProgram.SetUniform("mvN", mv.GetSubMatrix3().GetInverse().GetTranspose());
 
-    gob.getProgram().SetUniform("i_m", model.GetInverse());
-    gob.getProgram().SetUniform("i_v", view.GetInverse());
-    gob.getProgram().SetUniform("i_p", proj.GetInverse());
+    customProgram.SetUniform("i_m", model.GetInverse());
+    customProgram.SetUniform("i_v", view.GetInverse());
+    customProgram.SetUniform("i_p", proj.GetInverse());
 
     // -1 -> 1 to 0 -> 1 remapping
     cy::Matrix4f shadowvp = mainLight.getViewProjectionMatrix();
     shadowvp = cy::Matrix4f::Scale(cy::Vec3f(0.5f, 0.5f, 0.5f)) * shadowvp;
     shadowvp = cy::Matrix4f::Translation(cy::Vec3f(0.5f, 0.5f, 0.5f)) * shadowvp;
-    gob.getProgram().SetUniform("shadowvp", shadowvp);
+    customProgram.SetUniform("shadowvp", shadowvp);
 
-    gob.getProgram().SetUniform("pointLightPos", pointLight.getPosition());
-    gob.getProgram().SetUniform("shadowCubeFarPlane", pointLight.getFarPlane());
+    customProgram.SetUniform("pointLightPos", pointLight.getPosition());
+    customProgram.SetUniform("shadowCubeFarPlane", pointLight.getFarPlane());
 
-    gob.getProgram().SetUniform("cameraPos", camera.getCameraPosition());
+    customProgram.SetUniform("cameraPos", camera.getCameraPosition());
 
 
     cy::Vec3f _lightDirection = mainLight.GetLightDirection();
-    gob.getProgram().SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
-    gob.getProgram().SetUniform("specularExponent", 32.0f);
+    customProgram.SetUniform("mainLightDirectionView", (view * cy::Vec4f(_lightDirection.GetNormalized(), 0)).XYZ());
+    customProgram.SetUniform("specularExponent", 32.0f);
 
+
+    customProgram.SetUniform("tessellationLevel", tessellationLevel);
 
     if (gob.getMaterialCount() == 0) {
         // no materials, just draw all vertices
-        glDrawArrays(GL_TRIANGLES, 0, gob.getVertices().size());
+        if (patch) {
+            int count2 = gob.getVertexCount();
+
+
+
+            glPatchParameteri(GL_PATCH_VERTICES, 3);
+            int count = gob.getVertexCount();
+
+          
+            glDrawArrays(GL_PATCHES, 0, gob.getVertices().size());
+        }
+        else {
+            int count = gob.getVertexCount();
+
+            glDrawArrays(GL_TRIANGLES, 0, gob.getVertices().size());
+        }
     }
     else {
         int cummulativeVertexIndex = 0;
@@ -443,20 +525,31 @@ void renderGameObject(
 
             // set per material properties
             cy::TriMesh::Mtl _m = gob.getMaterial(i);
-            gob.getProgram().SetUniform("Ka", cy::Vec3f(_m.Ka[0], _m.Ka[1], _m.Ka[2]));
-            gob.getProgram().SetUniform("Kd", cy::Vec3f(_m.Kd[0], _m.Kd[1], _m.Kd[2]));
-            gob.getProgram().SetUniform("Ks", cy::Vec3f(_m.Ks[0], _m.Ks[1], _m.Ks[2]));
-            gob.getProgram().SetUniform("specularExponent", _m.Ns);
+            customProgram.SetUniform("Ka", cy::Vec3f(_m.Ka[0], _m.Ka[1], _m.Ka[2]));
+            customProgram.SetUniform("Kd", cy::Vec3f(_m.Kd[0], _m.Kd[1], _m.Kd[2]));
+            customProgram.SetUniform("Ks", cy::Vec3f(_m.Ks[0], _m.Ks[1], _m.Ks[2]));
+            customProgram.SetUniform("specularExponent", _m.Ns);
 
 
             diffuseTexture.Bind(0);
-            diffuseTexture.SetImage(gob.getDiffuseTexture(i).texture.data(), 4, gob.getDiffuseTexture(i).width, gob.getDiffuseTexture(i).height);
+            diffuseTexture.SetImage(
+                gob.getDiffuseTexture(i).texture.data()
+                , 4
+                , gob.getDiffuseTexture(i).width
+                , gob.getDiffuseTexture(i).height
+            );
             specularTexture.Bind(1);
             specularTexture.SetImage(gob.getSpecularTexture(i).texture.data(), 4, gob.getSpecularTexture(i).width, gob.getSpecularTexture(i).height);
             ambientTexture.Bind(2);
             ambientTexture.SetImage(gob.getAmbientTexture(i).texture.data(), 4, gob.getAmbientTexture(i).width, gob.getAmbientTexture(i).height);
 
-            glDrawArrays(GL_TRIANGLES, cummulativeVertexIndex, materialFaceCount);
+            if (patch) {
+                glPatchParameteri(GL_PATCH_VERTICES, 3);
+                glDrawArrays(GL_PATCHES, cummulativeVertexIndex, materialFaceCount);
+            }
+            else {
+                glDrawArrays(GL_TRIANGLES, cummulativeVertexIndex, materialFaceCount);
+            }
             cummulativeVertexIndex += materialFaceCount;
 
             //std::cout << "Drew " << cummulativeVertexIndex << " vertices" << std::endl;
@@ -466,13 +559,6 @@ void renderGameObject(
     glBindVertexArray(0);
 }
 
-/// <summary>
-/// Use a custom depth shader to render the gameobject at a lower cost
-/// </summary>
-/// <param name="gob"></param>
-/// <param name="depthProgram"></param>
-/// <param name="lightView"></param>
-/// <param name="lightProj"></param>
 void depthRenderGameObject(
     GameObject& gob,
     cy::GLSLProgram& depthProgram,
@@ -535,6 +621,11 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera
         oPressed = false;
     }
 
+    if (spaceCInput[0]) {
+        wireframe = !wireframe;
+        spaceCInput[0] = false;
+    }
+
     if (pPressed) {
         pointLight.setPosition(camera.getCameraPosition());
     }
@@ -552,6 +643,9 @@ void processInputs(GLFWwindow* window, OrbitCamera& camera
 
     if (wasdInput[2]) { camera.SetFOV(camera.GetFOV() + degToRad(1.0f)); }
     if (wasdInput[0]) { camera.SetFOV(camera.GetFOV() - degToRad(1.0f)); }
+
+    if (wasdInput[1]) { tessellationLevel -= 1; wasdInput[1] = false; }
+    if (wasdInput[3]) { tessellationLevel += 1; wasdInput[3] = false; }
 
     resetDeltas();
 }

@@ -110,6 +110,24 @@
     <None Include="shaders\advancedMapping.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\basic\wireframe.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\wireframe.geom">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\basic\wireframe.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\advancedMapping.tesc">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\advancedMapping.tese">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\advancedMapping.geom">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h">

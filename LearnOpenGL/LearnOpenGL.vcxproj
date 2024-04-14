@@ -140,6 +140,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\advancedMapping.frag" />
+    <None Include="shaders\advancedMapping.geom" />
+    <None Include="shaders\advancedMapping.tesc" />
+    <None Include="shaders\advancedMapping.tese" />
     <None Include="shaders\advancedMapping.vert" />
     <None Include="shaders\basic\basic.frag" />
     <None Include="shaders\basic\basic.geom" />
@@ -154,6 +157,9 @@
     <None Include="shaders\basic\depthCube.vert" />
     <None Include="shaders\basic\texture.frag" />
     <None Include="shaders\basic\texture.vert" />
+    <None Include="shaders\basic\wireframe.frag" />
+    <None Include="shaders\basic\wireframe.geom" />
+    <None Include="shaders\basic\wireframe.vert" />
     <None Include="shaders\cubeEnvironment.frag" />
     <None Include="shaders\cubeEnvironment.vert" />
     <None Include="shaders\environmentFragment.frag" />
