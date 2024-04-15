@@ -43,9 +43,6 @@ vec2 interpolate(vec2 v0, vec2 v1, vec2 v2){
 vec4 interpolate(vec4 v0, vec4 v1, vec4 v2){
     return vec4(gl_TessCoord.x) * v0 + vec4(gl_TessCoord.y) * v1 + vec4(gl_TessCoord.z) * v2;
 }
-mat3 interpolate(mat3 v0, mat3 v1, mat3 v2){
-    return mat3(gl_TessCoord.x) * v0 + mat3(gl_TessCoord.y) * v1 + mat3(gl_TessCoord.z) * v2;
-}
 
 void main(){
     vec3 interp_pos = tese_in[0].pos * gl_TessCoord.x + tese_in[1].pos * gl_TessCoord.y + tese_in[2].pos * gl_TessCoord.z;

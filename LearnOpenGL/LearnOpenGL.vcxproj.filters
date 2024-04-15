@@ -128,6 +128,9 @@
     <None Include="shaders\advancedMapping.geom">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\basic\depthCubeTess.tese">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Desktop\OpenGL\Include\textures.h">

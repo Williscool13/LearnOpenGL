@@ -70,6 +70,7 @@ void renderGameObject(
 
 void depthRenderGameObject(GameObject& gob, cy::GLSLProgram& depthProgram, cy::Matrix4f lightView, cy::Matrix4f lightProj);
 void cubeDepthRenderGameObject(GameObject& gob, cy::GLSLProgram& cubeDepthProgram, PointLight& pointLight);
+void cubeDepthRenderGameObjectTessellated(GameObject& gob, cy::GLSLProgram& cubeDepthProgramTessellated, PointLight& pointLight);
 
 
 
@@ -256,6 +257,15 @@ int main(int argc, char* argv[])
     cubeDepthProgram.BuildFiles("shaders\\basic\\depthCube.vert", "shaders\\basic\\depthCube.frag"
         , "shaders\\basic\\depthCube.geom");
 
+    cy::GLSLProgram cubeDepthProgramTessellated{};
+    cubeDepthProgramTessellated.BuildFiles(
+        "shaders\\advancedMapping.vert"
+        , "shaders\\basic\\depthCube.frag"
+        , "shaders\\basic\\depthCube.geom"
+        , "shaders\\advancedMapping.tesc"
+        , "shaders\\basic\\depthCubeTess.tese"
+    );
+
     cy::GLSLProgram wireframeProgram{};
     wireframeProgram.BuildFiles(
          "shaders\\advancedMapping.vert"
@@ -291,14 +301,12 @@ int main(int argc, char* argv[])
 #pragma endregion
 
 #pragma region Render Depth Shadows
-    // sets viewport and binds framebuffer
+        // Directional Light
         renderDepth.Bind();
         glCullFace(GL_FRONT);
         glClear(GL_DEPTH_BUFFER_BIT);
-
         // render gameobject w/ light view and projection
         // depthRenderGameObject(mainObject, depthProgram, mainLight.getViewMatrix(), mainLight.getProjectionMatrix());
-
         glCullFace(GL_BACK);
         renderDepth.Unbind();
 
@@ -307,13 +315,13 @@ int main(int argc, char* argv[])
 
         // Point Light
         cubeRenderDepth.Bind();
-        // use this if rendering to faces indi
+        // use this if rendering to faces individually
         //  cubeRenderDepth.SetTarget(0);
         glCullFace(GL_FRONT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubeRenderDepth.GetTextureID(), 0);
-        cubeDepthRenderGameObject(mainObject, cubeDepthProgram, pointLight);
-
+        //cubeDepthRenderGameObject(mainObject, cubeDepthProgram, pointLight);
+        cubeDepthRenderGameObjectTessellated(planeNormalMapping, cubeDepthProgramTessellated, pointLight);
 
         glCullFace(GL_BACK);
         cubeRenderDepth.Unbind();
@@ -341,8 +349,8 @@ int main(int argc, char* argv[])
         /*renderGameObject(mainObject, diffuseTexture, specularTexture, ambientTexture
             , mainLight, pointLight, camera);
         renderGameObject(groundPlane, diffuseTexture, specularTexture, ambientTexture
-            , mainLight, pointLight, camera);
-        */
+            , mainLight, pointLight, camera);*/
+        
 
 
         renderGameObject(planeNormalMapping, diffuseTexture, specularTexture, ambientTexture
@@ -596,10 +604,41 @@ void cubeDepthRenderGameObject(
 
     cubeDepthProgram.SetUniform("shadowMatrices", shadowTransorms.data(), 6);
 
+
     glDrawArrays(GL_TRIANGLES, 0, gob.getVertices().size());
     glBindVertexArray(0);
 
 }
+
+void cubeDepthRenderGameObjectTessellated(
+    GameObject& gob,
+    cy::GLSLProgram& cubeDepthProgramTessellated,
+    PointLight& pointLight
+
+) {
+    cubeDepthProgramTessellated.Bind();
+    glBindVertexArray(gob.getVAO());
+
+    std::vector<cy::Matrix4f> shadowTransorms = pointLight.getMatrices();
+    cy::Vec3f lightPos = pointLight.getPosition();
+    float farPlane = pointLight.getFarPlane();
+
+    cubeDepthProgramTessellated.SetUniform("m", gob.getModelMatrix());
+
+    cubeDepthProgramTessellated.SetUniform("farPlane", farPlane);
+    cubeDepthProgramTessellated.SetUniform("lightPos", lightPos);
+
+    cubeDepthProgramTessellated.SetUniform("shadowMatrices", shadowTransorms.data(), 6);
+
+    cubeDepthProgramTessellated.SetUniform("tessellationLevel", tessellationLevel);
+    cubeDepthProgramTessellated.SetUniform("displacementTexture", 8);
+
+
+    glPatchParameteri(GL_PATCH_VERTICES, 3);
+    glDrawArrays(GL_PATCHES, 0, gob.getVertices().size());
+    glBindVertexArray(0);
+}
+
 
 void recompileShaders() {
     for (auto& GameObject : gameObjects) {

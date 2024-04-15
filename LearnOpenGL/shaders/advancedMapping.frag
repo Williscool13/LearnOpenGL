@@ -114,9 +114,9 @@ void main()
     //color = vec4(light, 1.0f);
 
     // shadow cubemap
-    //float shadow2 = calculateCubemapShadow(fs_in.wPos);
-    //vec3 light2 = (ambient + shadow2 * (diff + spec)) * baseColor;
-    //color = vec4(light2, 1.0f);
+    float shadow2 = calculateCubemapShadow(fs_in.wPos);
+    vec3 light2 = (ambient + shadow2 * (diff + spec)) * baseColor;
+    color = vec4(light2, 1.0f);
 
     
     
